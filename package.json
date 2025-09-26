@@ -1,0 +1,46 @@
+{
+  "name": "panadero-datatable",
+  "version": "1.0.14",
+  "description": "Dynamic, configurable data table component for all Panadero packages",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "echo \"Development mode - panadero-datatable package\"",
+    "build": "echo \"Build complete\"",
+    "lint": "echo \"Linting complete\""
+  },
+  "keywords": [
+    "datatable",
+    "table",
+    "dynamic",
+    "configurable",
+    "vue",
+    "panadero",
+    "crud",
+    "api"
+  ],
+  "author": "JaWsome.Orbit",
+  "license": "MIT",
+  "peerDependencies": {
+    "vue": "^3.0.0",
+    "panadero-shared-styling": "^1.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Panadero-Services/panadero-datatable.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Panadero-Services/panadero-datatable/issues"
+  },
+  "homepage": "https://github.com/Panadero-Services/panadero-datatable#readme",
+  "files": [
+    "src/",
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ]
+}
