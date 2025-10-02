@@ -14,7 +14,7 @@ const props = defineProps({
 })
 
 // Emits
-const emit = defineEmits(['create', 'edit', 'delete', 'refresh'])
+const emit = defineEmits(['create', 'edit', 'delete', 'refresh', 'bulk-delete'])
 
 // Data table logic
 const {
@@ -29,24 +29,54 @@ const {
   allSelected,
   loading,
   error,
+  loadData,
   refresh,
   handleSort,
   handleSelectAll,
   handleSelectItem,
   handleSearch,
   handlePageChange,
+  handleCreate,
+  handleUpdate,
   handleDelete,
-  handleBulkDelete,
-  cleanup
+  handleBulkDelete: originalHandleBulkDelete,
+  cleanup,
+  filteredData,
+  paginatedData
 } = useDataTable(props.config, toRef(props, 'externalData'))
+
+// Override handleBulkDelete to emit event for external data
+const handleBulkDelete = async () => {
+  console.debug('DataTable handleBulkDelete called, externalData:', !!props.externalData, 'selectedItems:', selectedItems.value)
+  
+  if (props.externalData) {
+    // Emit event for external data handling
+    console.debug('Emitting bulk-delete event with selectedItems:', selectedItems.value)
+    emit('bulk-delete', selectedItems.value)
+    
+    // Clear selection after emitting the event
+    selectedItems.value = []
+    console.debug('Selection cleared after bulk delete')
+  } else {
+    // Use original function for internal API
+    console.debug('Using original handleBulkDelete for internal API')
+    await originalHandleBulkDelete()
+  }
+}
+
+// Override refresh to emit event for external data
+const handleRefresh = () => {
+  if (props.externalData) {
+    // Emit event for external data handling
+    emit('refresh')
+  } else {
+    // Use original function for internal API
+    refresh()
+  }
+}
 
 
 // Computed classes
-const containerClasses = computed(() => [
-  'rounded-xl shadow-lg border',
-  props.config.variant === 'compact' ? 'p-4' : 'p-6',
-  props.config.variant === 'bordered' ? 'border-2' : 'border'
-])
 
 const headerClasses = computed(() => [
   'mb-6',
@@ -98,9 +128,9 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="data-table-container" :class="containerClasses">
+  <div class="data-table-container " >
     <!-- Enhanced Header Section -->
-    <div class="data-table-header bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-t-xl border-b-2 border-blue-200 dark:border-gray-600 p-6 relative">
+    <div class="data-table-header bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-t-xl border-b-2 border-blue-200 dark:border-gray-900 p-6 relative">
       <!-- Main Header Row -->
       <div class="flex items-center justify-between mb-4">
         <!-- Title and Stats (Left) -->
@@ -135,34 +165,29 @@ onUnmounted(() => {
           </div>
         </div>
         
-        <!-- Action Buttons (Right) -->
-        <div class="flex items-center gap-3">
-          <!-- Refresh Button -->
-          <button
-            @click="refresh"
-            :disabled="loading"
-            :class="[darkModeClasses.button, 'rounded-xl p-3 transition-all duration-200 hover:shadow-lg']"
-            :style="scalingStyles.buttonPadding"
+        <!-- Action Icons (Right) -->
+        <div class="flex items-center gap-4">
+          <!-- Refresh Icon -->
+          <i 
+            @click="handleRefresh"
+            :class="[loading ? 'fa-spin' : '', 'fas fa-sync-alt text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer transition-colors']"
+            :style="scalingStyles.iconSize"
             title="Refresh data"
-          >
-            <i :class="[loading ? 'fa-spin' : '', 'fas fa-sync-alt']" :style="scalingStyles.iconSize"></i>
-          </button>
+          ></i>
 
-          <!-- Create Button -->
-          <button
+          <!-- Create Icon -->
+          <i 
             v-if="config.showCreate"
             @click="$emit('create')"
-            :class="[darkModeClasses.buttonPrimary, 'rounded-xl font-semibold transition-all duration-200 hover:shadow-lg bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700']"
-            :style="scalingStyles.buttonPadding"
-          >
-            <i class="fas fa-plus mr-2" :style="scalingStyles.iconSizeSmall"></i>
-            <span :style="scalingStyles.textFontSize">Add {{ config.title.slice(0, -1) }}</span>
-          </button>
+            class="fas fa-plus text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 cursor-pointer transition-colors"
+            :style="scalingStyles.iconSize"
+            title="Add new record"
+          ></i>
         </div>
       </div>
 
-      <!-- Enhanced Bulk Actions -->
-      <div v-if="config.showBulkActions && selectedItems.length > 0" class="mt-4 p-4 rounded-xl border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900 dark:to-yellow-900">
+      <!-- Enhanced Bulk Actions (only show for multiple selections) -->
+      <div v-if="config.showBulkActions && selectedItems.length > 1" class="mt-4 p-4 rounded-xl border-2 border-orange-200 dark:border-orange-800 bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900 dark:to-yellow-900">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
             <div class="bg-orange-500 rounded-full p-2">
@@ -170,7 +195,7 @@ onUnmounted(() => {
             </div>
             <div>
               <span :style="scalingStyles.textFontSize" :class="darkModeClasses.text" class="font-semibold">
-                {{ selectedItems.length }} {{ selectedItems.length === 1 ? 'item' : 'items' }} selected
+                {{ selectedItems.length }} items selected
               </span>
               <p :style="scalingStyles.smallFontSize" :class="darkModeClasses.textSecondary" class="text-sm">
                 Choose an action to perform on selected items
@@ -322,7 +347,7 @@ onUnmounted(() => {
                   </button>
                   <button
                     v-if="config.showDelete"
-                    @click="() => { console.debug('Delete button clicked for item:', item.id); $emit('delete', item.id) }"
+                    @click="() => { console.debug('Delete button clicked for item:', item); $emit('delete', item) }"
                     :class="[darkModeClasses.iconDanger, 'rounded p-1 transition-colors']"
                     :style="scalingStyles.actionButton"
                   >

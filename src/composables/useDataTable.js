@@ -198,9 +198,12 @@ export function useDataTable(config, externalData = null) {
       // Only call API if not using external data
       if (api) {
         await Promise.all(selectedItems.value.map(id => api.destroy(id)))
+        // Remove from local data
+        data.value = data.value.filter(item => !selectedItems.value.includes(item.id))
       }
-      // Remove from local data
-      data.value = data.value.filter(item => !selectedItems.value.includes(item.id))
+      // Note: External data handling is done in the component that uses this composable
+      
+      // Clear selection
       selectedItems.value = []
     } catch (err) {
       throw err

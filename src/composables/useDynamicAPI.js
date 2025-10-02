@@ -8,21 +8,10 @@ export function useDynamicAPI(tableName) {
   const loading = ref(false)
   const error = ref(null)
 
-  // Map table names to correct API endpoints
-  const tableMap = {
-    'products': 'erp_products', // Map products table to erp_products endpoint
-    'customers': 'erp_customers',
-    'suppliers': 'erp_suppliers',
-    'brands': 'erp_brands',
-    'units': 'erp_units',
-    'product_types': 'erp_product_types',
-    'product_groups': 'erp_product_groups'
-  }
-
-  // Unified endpoint configuration
+  // Generic endpoint configuration - no hardcoded mappings
   const endpoints = computed(() => {
-    const apiTableName = tableMap[tableName] || tableName
-    const endpoint = `${apiBase}/${apiTableName}`
+    // Use tableName directly - let the backend handle routing
+    const endpoint = `${apiBase}/${tableName}`
     console.log('Generated endpoint for', tableName, ':', endpoint)
     return {
       list: endpoint,
