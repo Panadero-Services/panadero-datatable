@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- meta block -->
+		<title>Diagram with Editor. Default mode. Customization of cards, editbar, toolbar and shapebar - DHTMLX Diagram</title>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" charset="utf-8">
+		
+		<link rel="shortcut icon" href="./common/favicon/favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="./common/favicon/icon-16.png" sizes="16x16" />
+		<link rel="icon" href="./common/favicon/icon-32.png" sizes="32x32" />
+		<link rel="icon" href="./common/favicon/icon-48.png" sizes="48x48" />
+		<link rel="icon" href="./common/favicon/icon-96.png" sizes="96x96" />
+		<link rel="icon" href="./common/favicon/icon-144.png" sizes="144x144" />
+		<!-- end meta block -->
+		<!-- icons -->
+		<link href="https://cdn.materialdesignicons.com/4.5.95/css/materialdesignicons.min.css?v=6.0.10" media="all" rel="stylesheet" type="text/css">
+		<!-- diagram -->
+		<link rel="stylesheet" href="./common/index.css?v=6.0.10">
+		<link rel="stylesheet" href="../codebase/diagramWithEditor.css?v=6.0.10">
+		<script type="text/javascript" src="../codebase/diagramWithEditor.js?v=6.0.10"></script>
+		<script type="text/javascript" src="./common/data.js?v=6.0.10"></script>
+		<!-- custom sample head -->
+		<style>
+			body {
+				overflow: hidden;
+			}
+			.dhx_sample-container__without-editor {
+				height: calc(100% - 121px);
+			}
+			.dhx_sample-container__with-editor {
+				height: calc(100% - 61px);
+			}
+			.dhx_sample-widget {
+				height: 100%;
+			}
+			.dhx_diagram_template_c {
+				--dhx-template-c-header-background: var(--dhx-background-primary);
+				--dhx-template-c-header-color: var(--dhx-color-gray-700);
+
+				font-family: var(--dhx-font-family);
+				font-size: var(--dhx-font-size-normal);
+				font-weight: var(--dhx-font-weight-regular);
+				line-height: var(--dhx-line-height-small);
+				color: var(--dhx-font-color-primary);
+
+				height: 100%;
+				width: 100%;
+
+				background-color: var(--dhx-background-primary);
+				border: var(--dhx-border);
+				border-radius: 4px;
+
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex-direction: column;
+
+				overflow: hidden;
+			}
+			.dhx_diagram_template_c__stage--analysis {
+				--dhx-template-c-header-background: #DAFFE6;
+			}
+			.dhx_diagram_template_c__stage--design {
+				--dhx-template-c-header-background: #E4CCFF;
+			} 
+			.dhx_diagram_template_c__stage--development {
+				--dhx-template-c-header-background: #FCD19C;
+			}
+			.dhx_diagram_template_c__stage--testing {
+				--dhx-template-c-header-background: #BDE3FF;
+			}
+			.dhx_diagram_template_c__stage--launch {
+				--dhx-template-c-header-background: #FFC7C2;
+			}
+			.dhx_diagram_template_c__header {
+				padding: 8px;
+				min-height: 32px;
+				width: 100%;
+				border-bottom: var(--dhx-border);
+				font-weight: var(--dhx-font-weight-medium);
+				text-align: center;
+				color: var(--dhx-template-c-header-color);
+				background-color: var(--dhx-template-c-header-background);
+			}
+			.dhx_diagram_template_c__footer {
+				color: var(--dhx-font-color-secondary);
+
+				display: flex;
+				justify-content: center;
+				align-items: center;
+
+				height: 100%;
+				width: 100%;
+			}
+			.dhx_diagram_template_c__content {
+				width: 100%;
+			}
+			.dhx_diagram_template_c__row {
+				display: flex;
+				width: 100%;
+				height: 32px;
+				border-bottom: var(--dhx-border);
+			}
+			.dhx_diagram_template_c__text {
+				padding: 8px;
+				width: 100%;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			.dhx_diagram_template_c__text:not(:first-child) {
+				border-left: var(--dhx-border);
+			}
+		</style>
+	</head>
+	<body>
+		<header class="dhx_sample-header">
+			<div class="dhx_sample-header__main">
+				<nav class="dhx_sample-header__breadcrumbs">
+					<ul class="dhx_sample-header-breadcrumbs">
+						<li class="dhx_sample-header-breadcrumbs__item">
+							<a href="./index.html" class="dhx_sample-header-breadcrumbs__link">Back to Diagram samples</a>
+						</li>
+					</ul>
+				</nav>
+				<h1 class="dhx_sample-header__title">
+					<div class="dhx_sample-header__content">
+						Diagram with Editor. Default mode. Customization of cards, editbar, toolbar and shapebar
+					</div>
+				</h1>
+			</div>
+		</header>
+		<section id="control" class="dhx_sample-controls">
+			<button class="dhx_sample-btn dhx_sample-btn--flat" onclick="runEditor()">Edit</button>
+		</section>
+		<section id="container" class="dhx_sample-container__without-editor">
+			<div class="dhx_sample-widget" id="diagram"></div>
+			<div class="dhx_sample-widget" id="editor" style="display: none;"></div>
+		</section>
+		<script>
+			const PERT_SHAPE = {
+				defaults: {
+					width: 180,
+					height: 124,
+					responsible: "Responsible",
+					start_date: dateToString(new Date),
+					end_date: dateToString(new Date(Date.now() + 100000000)),
+					preview: { scale: 0.65 },
+				},
+				template: ({ start_date, end_date, status, task, responsible, stage }) => {
+					const duration = getDiffDays(start_date, end_date);
+					return `
+						<div class="dhx_diagram_template_c dhx_diagram_template_c__stage--${stage}" >
+							<div class="dhx_diagram_template_c__header">${task}</div>
+							<div class="dhx_diagram_template_c__content">
+								<div class="dhx_diagram_template_c__row">
+									<div class="dhx_diagram_template_c__text">${status}</div>
+									<div class="dhx_diagram_template_c__text">${duration} days</div>
+								</div>
+								<div class="dhx_diagram_template_c__row">
+									<div class="dhx_diagram_template_c__text">${start_date}</div>
+									<div class="dhx_diagram_template_c__text">${end_date}</div>
+								</div>
+							</div>
+							<div class="dhx_diagram_template_c__footer">${responsible}</div>
+						</div>
+					`;
+				},
+			};
+
+			const diagram = new dhx.Diagram("diagram", {
+				type: "default",
+				defaults: {
+					line: { stroke: "#4d4d4d" }
+				}
+			});
+			diagram.addShape("pert", { ...PERT_SHAPE });
+			diagram.data.parse(productData);
+
+			const editor = new dhx.DiagramEditor("editor", {
+				type: "default",
+				defaults: {
+					line: { stroke: "#4d4d4d" }
+				},
+				view: {
+					toolbar: {
+						items: [
+							"file", "edit", "view", "spacer",
+							{
+								type: "button",
+								view: "link",
+								color: "secondary",
+								circle: true,
+								icon: "mdi mdi-white-balance-sunny",
+								checkIcon: () => isDarkTheme() ? "mdi mdi-moon-waning-crescent" : "mdi mdi-white-balance-sunny",
+								handler: () => {
+									const node = document.getElementById("editor").childNodes[0];
+									isDarkTheme() ? dhx.setTheme("light", node) : dhx.setTheme("dark", node);
+								},
+							},
+							{
+								type: "button",
+								view: "link",
+								color: "secondary",
+								circle: true,
+								icon: "dxi dxi-eye",
+								checkIcon: (editor) => {
+									const isVisible = editor.view.isVisible("editbar") || editor.view.isVisible("shapebar");
+									return isVisible ? "dxi dxi-eye" : "dxi dxi-eye-off";
+								},
+								handler: (editor) => {
+									const isVisible = editor.view.isVisible("editbar") || editor.view.isVisible("shapebar");
+									if (isVisible) {
+										editor.view.hide("editbar");
+										editor.view.hide("shapebar");
+									} else {
+										editor.view.show("editbar");
+										editor.view.show("shapebar");
+									}
+								},
+							},
+							"spacer",
+							{
+								type: "button",
+								value: "Back to diagram",
+								tooltip: "Click to exit",
+								view: "link",
+								handler: () => collapse(),
+							},
+						]
+					},
+					shapebar: {
+						sections: {
+							"Pert shapes": [
+								{ type: "pert", stage: "analysis", task: "Analysis", status: "T1." },
+								{ type: "pert", stage: "design", task: "Design", status: "T2." },
+								{ type: "pert", stage: "development", task: "Development", status: "T3." },
+								{ type: "pert", stage: "testing", task: "Testing", status: "T4." },
+								{ type: "pert", stage: "launch", task: "Launch", status: "T5." },
+							],
+							"Flow shapes": [{ flowShapes: true }],
+						},
+					},
+					editbar: {
+						properties: {
+							pert: [
+								{ type: "arrange", $properties: { angle: { hidden: true } }},
+								{ type: "details"},
+							],
+							$swimlane: [
+								{ type: "gridStep" },
+							]
+						},
+						controls: {
+							details: {
+								type: "fieldset",
+								label: "Task details",
+								rows: [
+									{ type: "input", key: "status", label: "Status" },
+									{ type: "textarea", key: "task", label: "Description" },
+									{
+										align: "between",
+										cols: [
+											{ type: "datepicker", key: "start_date", dateFormat:"%d.%m.%Y", label: "Date start", width: "48%" },
+											{ type: "datepicker", key: "end_date", dateFormat:"%d.%m.%Y", label: "Date end", width: "48%" },
+										],
+									},
+									{
+										type: "combo",
+										key: "responsible",
+										label: "Responsible",
+										placeholder: "Select responsible",
+										options: ["Henry Bennett", "Greg Mash", "Olga Dahixi", "Mike Freebel", "Emma Lynch", "Charles Little"]
+									},
+									{
+										type: "combo",
+										key: "stage",
+										label: "Stage",
+										placeholder: "Select stage",
+										options: [
+											{ id: "analysis", value: "Analysis" },
+											{ id: "design", value: "Design" },
+											{ id: "development", value: "Development" },
+											{ id: "testing", value: "Testing" },
+											{ id: "launch", value: "Launch" },
+										]
+									},
+								],
+							},
+						}
+					}
+				},
+			});
+			editor.diagram.addShape("pert", { ...PERT_SHAPE });
+
+			const editorContainer = document.querySelector("#editor");
+			const diagramContainer = document.querySelector("#diagram");
+			const controls = document.querySelector("#control");
+			const container = document.querySelector("#container");
+			
+			const CONTAINER_WITH_EDITOR = "dhx_sample-container__with-editor";
+			const CONTAINER_WITHOUT_EDITOR = "dhx_sample-container__without-editor";
+
+			function expand() {
+				diagramContainer.style.display = "none";
+				controls.style.display = "none";
+				editorContainer.style.display = "block";
+				container.classList.remove(CONTAINER_WITHOUT_EDITOR);
+				container.classList.add(CONTAINER_WITH_EDITOR);
+			}
+
+			function collapse() {
+				diagramContainer.style.display = "block";
+				controls.style.display = "flex";
+				editorContainer.style.display = "none";
+				container.classList.remove(CONTAINER_WITH_EDITOR);
+				container.classList.add(CONTAINER_WITHOUT_EDITOR);
+
+				diagram.selection.add({ id: editor.diagram.selection.getItem()?.id });
+			}
+
+			function runEditor() {
+				expand();
+				editor.import(diagram);
+				editor.diagram.selection.add({ id: diagram.selection.getItem()?.id });
+			}
+
+			function isDarkTheme() {
+				const node = document.getElementById("editor").childNodes[0];
+				const currentTheme = node.dataset.dhxTheme;
+				return (currentTheme === "dark" || currentTheme === "contrast-dark");
+			}
+
+			function dateToString(date) {
+				if (!(date instanceof Date)) {
+					return;
+				}
+				return `${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`
+			}
+
+			function stringToDate(string) {
+				if (typeof string !== "string") {
+					return;
+				}
+				const [day, month, year] = string.split(".");
+				return new Date(year, month - 1, day);
+			}
+
+			function getDiffDays(firstDate, secondDate) {
+				const DAY = 1000 * 60 * 60 * 24;
+				const firstDateObj = stringToDate(firstDate);
+				const secondDateObj = stringToDate(secondDate);
+				const diffTime = secondDateObj.getTime() - firstDateObj.getTime();
+				return Math.floor(diffTime / DAY);
+			}
+
+		</script>
+	</body>
+</html>

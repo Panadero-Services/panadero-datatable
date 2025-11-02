@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- meta block -->
+		<title>Diagram. Org chart mode. Template change while zooming - DHTMLX Diagram</title>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" charset="utf-8">
+		
+		<link rel="shortcut icon" href="./common/favicon/favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="./common/favicon/icon-16.png" sizes="16x16" />
+		<link rel="icon" href="./common/favicon/icon-32.png" sizes="32x32" />
+		<link rel="icon" href="./common/favicon/icon-48.png" sizes="48x48" />
+		<link rel="icon" href="./common/favicon/icon-96.png" sizes="96x96" />
+		<link rel="icon" href="./common/favicon/icon-144.png" sizes="144x144" />
+		<!-- end meta block -->
+		<!-- icons -->
+		<link href="https://cdn.materialdesignicons.com/4.5.95/css/materialdesignicons.min.css?v=6.0.10" media="all" rel="stylesheet" type="text/css">
+		<!-- diagram -->
+		<link rel="stylesheet" href="./common/index.css?v=6.0.10">
+		<link rel="stylesheet" href="../codebase/diagram.css?v=6.0.10">
+		<script type="text/javascript" src="../codebase/diagram.js?v=6.0.10"></script>
+		<!-- suite GPL -->
+		<script src="https://cdn.dhtmlx.com/suite/edge/suite.js?v=6.0.10"></script>
+		<link rel="stylesheet" href="https://cdn.dhtmlx.com/suite/edge/suite.css?v=6.0.10">
+		<!-- custom sample head -->
+		<script type="text/javascript" src="./common/data.js?v=6.0.10"></script>
+		<style>
+			.main__container {
+				height: calc(100% - 121px);
+				display: flex;
+			}
+			.sample__container {
+				height: 100%;
+				width: calc(100% - 248px);
+				overflow: auto;
+			}
+			.dhx_sample-slider__container {
+				width: 350px;
+			}
+			.sidebar__container {
+				display: flex;
+				flex-direction: column;
+				min-width: 248px;
+				width: 248px;
+				height: 100%;
+				padding: 20px;
+				border-left: var(--dhx-border);
+			}
+			.sidebar__field {
+				font-size: var(--dhx-font-size-normal);
+				line-height: var(--dhx-line-height-normal);
+				font-family: var(--dhx-font-family);
+				font-style: normal;
+				font-weight: normal;
+				color: var(--dhx-font-color-primary);
+				padding: 4px 0;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			.sidebar__button {
+				display: block;
+				text-align: center;
+				text-decoration: none;
+				width: 100%;
+				height: 28px;
+				line-height: 28px;
+				border-radius: 4px;
+				margin-top: 28px;
+				color: var(--dhx-color-white);
+				background: var(--dhx-color-primary);
+			}
+			.sidebar__photo {
+				height: 208px;
+				margin-bottom: 28px;
+				width: auto;
+				background: var(--dhx-background-secondary);
+			}
+			.dhx_diagram_template_a_box {
+				background-color: transparent;
+			}
+			.dhx_diagram_template_a_box {
+				padding: 0;
+				border: var(--dhx-border);
+				background-color: var(--dhx-background-primary);
+				overflow: hidden;
+			}
+			.dhx_diagram_template_a {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				width: 100%;
+				height: 100%;
+				padding: 12px;
+			}
+			.dhx_diagram_template_a__inside {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				width: 100%;
+			}
+			.dhx_diagram_template_a__picture {
+				width: 90px;
+				min-width: 90px;
+				background: center center/cover no-repeat var(--dhx-background-secondary);
+			}
+			.dhx_diagram_template_a__picture:before {
+				content: "";
+				display: block;
+				padding-top: 100%;
+			}
+			.dhx_diagram_template_a__body {
+				padding-left: 12px;
+				min-width: 200px;
+			}
+			.dhx_diagram_template_a__title,
+			.dhx_diagram_template_a__text {
+				font-family: var(--dhx-font-family);
+				font-weight: var(--dhx-font-weight-regular);
+				font-size: var(--dhx-font-size-normal);
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				overflow: hidden;
+			}
+			.dhx_diagram_template_a__title {
+				text-align: start;
+				color: var(--dhx-font-color-primary);
+				font-weight: var(--dhx-font-weight-medium);
+			}
+			.dhx_diagram_template_a__row {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				-webkit-box-align: center;
+				-ms-flex-align: center;
+				align-items: center;
+				margin: 4px 0;
+			}
+			.dhx_diagram_template_a__icon {
+				font-size: 18px;
+				margin-right: 4px;
+				color: var(--dhx-font-color-secondary);
+			}
+			.dhx_diagram_template_a__text {
+				color: var(--dhx-font-color-primary);
+			}
+			.dhx_diagram_template_a__link {
+				color: var(--dhx-color-primary);
+			}
+			/* Start custom block for medium, small template */
+			.dhx_diagram_item--selected {
+				--dhx-selected-border-dashed: 2px solid #8c8c8c;
+			}
+			.dhx_diagram_template_a--medium .dhx_diagram_template_a__picture {
+				min-width: 42px;
+				width: 42px;
+			}
+			.dhx_diagram_template_a--medium .dhx_diagram_template_a__body {
+				min-width: 80px;
+			}
+			.dhx_diagram_template_a--medium .dhx_diagram_template_a__title,
+			.dhx_diagram_template_a--medium .dhx_diagram_template_a__text {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+			.dhx_diagram_template_a--small .dhx_diagram_template_a__body {
+				padding: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<header class="dhx_sample-header">
+			<div class="dhx_sample-header__main">
+				<nav class="dhx_sample-header__breadcrumbs">
+					<ul class="dhx_sample-header-breadcrumbs">
+						<li class="dhx_sample-header-breadcrumbs__item">
+							<a href="./index.html" class="dhx_sample-header-breadcrumbs__link">Back to Diagram samples</a>
+						</li>
+					</ul>
+				</nav>
+				<h1 class="dhx_sample-header__title">
+					<div class="dhx_sample-header__content">
+						Diagram. Org chart mode. Template change while zooming
+					</div>
+				</h1>
+			</div>
+		</header>
+		<section class="dhx_sample-controls">
+			<div class="dhx_sample-slider__container" id="slider"></div>
+		</section>
+		<main class="main__container">
+			<div class="sample__container" id="diagram"></div>
+			<div class="sidebar__container">
+				<img id="photo" class="sidebar__photo">
+				<span id="name" class="sidebar__field" style="font-weight:500">Name</span>
+				<span id="post" class="sidebar__field">Post</span>
+				<span id="phone" class="sidebar__field">Phone</span>
+				<span id="mail" class="sidebar__field sidebar__field-mail">Mail</span>
+				<a id="send" class="sidebar__button" target="_blank">Send email</a>
+			</div>
+		</main>
+		<script>
+			const TEMPLATE = {
+				small: {
+					defaults: {	width: 200, height: 44 },
+					template: ({ name }) => {
+						return `
+							<div class="dhx_diagram_template_a_box dhx_diagram_template_a dhx_diagram_template_a--small">
+								<div class="dhx_diagram_template_a__inside">
+									<div class="dhx_diagram_template_a__body">
+										<div class="dhx_diagram_template_a__title">${name}</div>
+									</div>
+								</div>
+							</div>
+						`;
+					},
+				},
+				medium: {
+					defaults: {	width: 200,	height: 68 },
+					template: ({ photo, name, post }) => {
+						return `
+							<div class="dhx_diagram_template_a_box dhx_diagram_template_a dhx_diagram_template_a--medium">
+								<div class="dhx_diagram_template_a__inside">
+									<div
+										class="dhx_diagram_template_a__picture"
+										style="background-image: url(${photo});">
+									</div>
+									<div class="dhx_diagram_template_a__body">
+										<div class="dhx_diagram_template_a__title">${name}</div>
+										<div class="dhx_diagram_template_a__row">
+											<span class="dhx_diagram_template_a__text">${post}</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						`;
+					},
+				},
+				large: {
+					defaults: {	width: 330,	height: 115	},
+					template: ({ photo, name, post, phone, mail }) => {
+						return `
+							<div class="dhx_diagram_template_a_box dhx_diagram_template_a">
+								<div class="dhx_diagram_template_a__inside">
+									<div class="dhx_diagram_template_a__picture" style="background-image: url(${photo});"></div>
+									<div class="dhx_diagram_template_a__body">
+										<div class="dhx_diagram_template_a__title">${name}</div>
+										<div class="dhx_diagram_template_a__row">
+											<span class="dhx_diagram_template_a__text">${post}</span>
+										</div>
+										<div class="dhx_diagram_template_a__row">
+											<span class="dhx_diagram_template_a__icon mdi mdi-cellphone-android"></span>
+											<span class="dhx_diagram_template_a__text">${phone}</span>
+										</div>
+										<div class="dhx_diagram_template_a__row">
+											<span class="dhx_diagram_template_a__icon mdi mdi-email-outline"></span>
+											<span class="dhx_diagram_template_a__text">
+												<a class="dhx_diagram_template_a__link" href="mailto:${mail}" target="_blank">${mail}</a>
+											</span>
+										</div>
+									</div>
+								</div>
+							</div>
+						`;
+					},
+				}
+			};
+
+			let diagram;
+
+			function createDiagram(config) {
+				diagram = new dhx.Diagram("diagram", {
+					type: "org",
+					defaultShapeType: "employeeCard",
+					scale: config.scale,
+					select: true,
+				});
+				diagram.addShape("employeeCard", {
+					template: config.template,
+					defaults: config.defaults
+				});
+				diagram.events.on("afterSelect", function({ id }) {
+					setSidebar(diagram.data.getItem(id));
+				});
+				medicalWorkers.forEach(item => {
+					item.width = config.defaults.width;
+					item.height = config.defaults.height;
+				});
+				diagram.data.parse(medicalWorkers);
+			}
+
+			function changeTemplate(scale) {
+				const selectionItem = diagram.selection.getItem();
+				if (diagram) {
+					diagram.destructor();
+				}
+				let config;
+				switch (true) {
+					case scale >= 0.8:
+						config = { ...TEMPLATE.large, scale };
+						break;
+					case scale <= 0.8 && scale >= 0.6:
+						config = { ...TEMPLATE.medium, scale };
+						break;
+					case scale <= 0.6:
+						config = { ...TEMPLATE.small, scale };
+						break;
+				}
+				createDiagram(config);
+				selectionItem && diagram.selection.add({ id: selectionItem.id });
+			}
+
+			const tickTemplate = value => value;
+			const slider = new dhx.Slider("slider", {
+				min: 0.4,
+				max: 1,
+				tooltip: false,
+				step: 0.05,
+				tick: 1,
+				majorTick: 2,
+				value: 0.7,
+				tickTemplate: tickTemplate
+			});
+
+			slider.events.on("change", function(value) {
+				changeTemplate(value);
+			});
+
+			function setSidebar(config) {
+				const photo = document.querySelector("#photo");
+				const name = document.querySelector("#name");
+				const post = document.querySelector("#post");
+				const phone = document.querySelector("#phone");
+				const mail = document.querySelector("#mail");
+				const send = document.querySelector("#send");
+
+				name.innerHTML = config.name + "";
+				post.innerHTML = config.post + "";
+				phone.innerHTML = config.phone + "";
+				mail.innerHTML = config.mail + "";
+				send.href = "mailto:" + config.mail + "";
+				photo.src = config.photo + "";
+				photo.alt = config.name + "-" + config.post + "";
+			}
+
+			createDiagram({	...TEMPLATE.medium,	scale: 0.7 });
+			diagram.selection.add({ id: "main" });
+		</script>
+	</body>
+</html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- meta block -->
+		<title>Diagram with Editor. Org chart mode. Customization of cards, editbar and toolbar - DHTMLX Diagram</title>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" charset="utf-8">
+		
+		<link rel="shortcut icon" href="./common/favicon/favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="./common/favicon/icon-16.png" sizes="16x16" />
+		<link rel="icon" href="./common/favicon/icon-32.png" sizes="32x32" />
+		<link rel="icon" href="./common/favicon/icon-48.png" sizes="48x48" />
+		<link rel="icon" href="./common/favicon/icon-96.png" sizes="96x96" />
+		<link rel="icon" href="./common/favicon/icon-144.png" sizes="144x144" />
+		<!-- end meta block -->
+		<!-- icons -->
+		<link href="https://cdn.materialdesignicons.com/4.5.95/css/materialdesignicons.min.css?v=6.0.10" media="all" rel="stylesheet" type="text/css">
+		<!-- suite GPL -->
+		<link rel="stylesheet" href="https://cdn.dhtmlx.com/suite/edge/suite.css?v=6.0.10">
+		<script src="https://cdn.dhtmlx.com/suite/edge/suite.js?v=6.0.10"></script>
+		<!-- diagram -->
+		<link rel="stylesheet" href="./common/index.css?v=6.0.10">
+		<link rel="stylesheet" href="../codebase/diagramWithEditor.css?v=6.0.10">
+		<script type="text/javascript" src="../codebase/diagramWithEditor.js?v=6.0.10"></script>
+		<script type="text/javascript" src="./common/data.js?v=6.0.10"></script>
+		<!-- custom sample head -->
+		<style>
+			body {
+				overflow: hidden;
+			}
+			.dhx_sample-container__without-editor {
+				height: calc(100% - 121px);
+			}
+			.dhx_sample-container__with-editor {
+				height: calc(100% - 61px);
+			}
+			.dhx_sample-widget {
+				height: 100%;
+			}
+			.toggle--open-menu {
+				position: absolute;
+				right: 2px;
+				top: 10px;
+				cursor: pointer;
+				height: 20px;
+				width: 20px;
+			}
+			.toolbar_logo__image {
+				width: 70px;
+				height: 30px;
+				max-height: 30px;
+			}
+			.toolbar_logo__container {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				margin-left: 12px;
+			}
+			.editbar_logo__image {
+				display: block;
+				width: 200px;
+				height: 200px;
+				margin-top: 20px;
+				margin-left: auto;
+				margin-right: auto;
+			}
+			.editbar_logo__description {
+				color: var(--dhx-font-color-primary);
+			}
+			.editbar_logo__header {
+				color: var(--dhx-font-color-primary);
+				font-weight: var(--dhx-font-weight-medium);
+			}
+			.dhx_diagram_template_a_box {
+				background-color: transparent;
+			}
+			.dhx_diagram_template_a_box {
+				padding: 0;
+				border: var(--dhx-border);
+				background-color: var(--dhx-background-primary);
+				overflow: hidden;
+			}
+			.dhx_diagram_template_a {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				width: 100%;
+				height: 100%;
+				padding: 12px;
+			}
+			.dhx_diagram_template_a__inside {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				width: 100%;
+			}
+			.dhx_diagram_template_a__picture {
+				width: 90px;
+				min-width: 90px;
+				background: center center/cover no-repeat var(--dhx-background-secondary);
+			}
+			.dhx_diagram_template_a__picture:before {
+				content: "";
+				display: block;
+				padding-top: 100%;
+			}
+			.dhx_diagram_template_a__body {
+				padding-left: 12px;
+				min-width: 200px;
+			}
+			.dhx_diagram_template_a__title,
+			.dhx_diagram_template_a__text {
+				font-family: var(--dhx-font-family);
+				font-weight: var(--dhx-font-weight-regular);
+				font-size: var(--dhx-font-size-normal);
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				overflow: hidden;
+			}
+			.dhx_diagram_template_a__title {
+				text-align: start;
+				color: var(--dhx-font-color-primary);
+				font-weight: var(--dhx-font-weight-medium);
+			}
+			.dhx_diagram_template_a__row {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				-webkit-box-align: center;
+				-ms-flex-align: center;
+				align-items: center;
+				margin: 4px 0;
+			}
+			.dhx_diagram_template_a__icon {
+				font-size: 18px;
+				margin-right: 4px;
+				color: var(--dhx-font-color-secondary);
+			}
+			.dhx_diagram_template_a__text {
+				color: var(--dhx-font-color-primary);
+			}
+			.dhx_diagram_template_a__link {
+				color: var(--dhx-color-primary);
+			}
+		</style>
+	</head>
+	<body>
+		<header class="dhx_sample-header">
+			<div class="dhx_sample-header__main">
+				<nav class="dhx_sample-header__breadcrumbs">
+					<ul class="dhx_sample-header-breadcrumbs">
+						<li class="dhx_sample-header-breadcrumbs__item">
+							<a href="./index.html" class="dhx_sample-header-breadcrumbs__link">Back to Diagram samples</a>
+						</li>
+					</ul>
+				</nav>
+				<h1 class="dhx_sample-header__title">
+					<div class="dhx_sample-header__content">
+						Diagram with Editor. Org chart mode. Customization of cards, editbar and toolbar
+					</div>
+				</h1>
+			</div>
+		</header>
+		<section id="control" class="dhx_sample-controls">
+			<button class="dhx_sample-btn dhx_sample-btn--flat" onclick="runEditor()">Edit</button>
+		</section>
+		<section id="container" class="dhx_sample-container__without-editor">
+			<div class="dhx_sample-widget" id="diagram"></div>
+			<div class="dhx_sample-widget" id="editor" style="display: none;"></div>
+		</section>
+		<script>
+			const PERSONAL_SHAPE = {
+				template: ({ name, photo, post, phone, mail }) => (`
+					<div class="dhx_diagram_template_a_box dhx_diagram_template_a">
+						<div class="dhx_diagram_template_a__inside">
+							<div class="dhx_diagram_template_a__picture" style="background-image: url(${photo});"></div>
+							<div class="dhx_diagram_template_a__body">
+								<div class="dhx_diagram_template_a__title">${name}</div>
+								<div class="dhx_diagram_template_a__row">
+									<span class="dhx_diagram_template_a__text">${post}</span>
+								</div>
+								<div class="dhx_diagram_template_a__row">
+									<span class="dhx_diagram_template_a__icon mdi mdi-cellphone-android"></span>
+									<span class="dhx_diagram_template_a__text">${phone}</span>
+								</div>
+								<div class="dhx_diagram_template_a__row">
+									<span class="dhx_diagram_template_a__icon mdi mdi-email-outline"></span>
+									<span class="dhx_diagram_template_a__text">
+										<a class="dhx_diagram_template_a__link" href="mailto:${mail}" target="_blank">${mail}</a>
+									</span>
+								</div>
+							</div>
+							<div class="toggle--open-menu">
+								<span class="dhx_diagram_template_a__icon mdi mdi-dots-vertical"></span>
+							</div>
+						</div>
+					</div>
+				`),
+				defaults: {
+					height: 115, width: 330,
+					name: "Name and First name",
+					post: "Resident",
+					phone: "(405) 000-00-00",
+					mail: "some@mail.com",
+					photo: "",
+				}
+			}
+
+			const diagram = new dhx.Diagram("diagram", {
+				type: "org",
+				defaultShapeType: "personal",
+				select: true,
+			});
+
+			diagram.addShape("personal", {
+				...PERSONAL_SHAPE,
+				eventHandlers: {
+					onclick: {
+						"toggle--open-menu": openMenu,
+					}
+				},
+			});
+	
+			diagram.data.parse(medicalWorkers);
+
+			const toolbarItems = [
+				{
+					type: "customHTML",
+					html: `
+						<div class="toolbar_logo__image">
+							<svg viewBox="0 0 40 18" xmlns="http://www.w3.org/2000/svg">
+								<path fill="#2095f3" fill-rule="evenodd"
+									d="M15.5 8.75C15.5 10.4 15.15 11.85 14.45 13.15C13.75 14.45 12.85 15.45 11.75 16.1C10.85 16.7 9.85 17.05 8.8 17.25C7.75 17.4 6.6 17.5 5.4 17.5H0V0H5.4C6.6 0 7.75 0.1 8.85 0.25C9.9 0.4 10.9 0.8 11.85 1.4C13 2.15 13.9 3.15 14.55 4.4C15.15 5.6 15.5 7.1 15.5 8.75ZM23 17.5L27 11.3V6L23 0V6.2H17.5V0H13V1.9C13.8 2.55 14.5 3.35 15 4.35C15.65 5.6 16 7.05 16 8.75C16 10.4 15.65 11.85 14.95 13.15C14.4 14.1 13.75 14.9 13 15.55V17.5H17.5V10.15H23V17.5ZM31.75 11.3L35.05 17.5H40L33.95 8.45L40 0H35.05L31.75 5.1L28.45 0H23.5L29 8.45L23.5 17.5H28.45L31.75 11.3ZM8.80005 3.89999C9.60005 4.34999 10.2 4.99999 10.6 5.79999C11 6.59999 11.2 7.59999 11.25 8.69999C11.25 9.89999 11.05 10.85 10.7 11.65C10.3 12.45 9.75005 13.1 9.05005 13.55C8.45005 13.95 7.80005 14.15 7.15005 14.2C6.45005 14.25 5.65005 14.25 4.65005 14.25H4.55005V3.29999H4.65005C5.55005 3.29999 6.30005 3.29999 6.95005 3.34999C7.60005 3.39999 8.20005 3.54999 8.80005 3.89999Z">
+								</path>
+							</svg>
+						</div>
+					`,
+					css: "toolbar_logo__container",
+				},
+				"file",
+				"edit",
+				"view",
+				"spacer",
+				{
+					type: "button",
+					value: "Back to diagram",
+					tooltip: "Click to exit",
+					view: "link",
+					handler: () => collapse(),
+				},
+			];
+
+			const editor = new dhx.DiagramEditor("editor", {
+				type: "org",
+				shapeType: "personal",
+				view: {
+					toolbar: {
+						items: toolbarItems,
+					},
+					editbar: {
+						properties: {
+							$default: [
+								{
+									type: "container",
+									html: `
+										<h3 class="editbar_logo__header">DHTMLX Diagram</h3>
+										<p class="editbar_logo__description">This is an example of simple customization of the editing panel using the container control.</p>
+										<p class="editbar_logo__description">You can also use this control to create your own controls.</p>
+										<img class="editbar_logo__image" src='./common/img/developer.svg'>
+									`,
+								},
+							],
+							$shape: [
+								{
+									type: "fieldset",
+									label: "Employee information",
+									rows: [
+										{ type: "avatar", key: "photo", size: 240 },
+										{ type: "input", key: "name", label: "Name", placeholder: "Type the name"  },
+										{
+											type: "combo",
+											key: "post",
+											label: "Post",
+											readOnly: true,
+											options: ["Medical director", "Head of department", "Attending physician", "Fellow", "Senior resident", "Junior resident"],
+										},
+										{ type: "input", key: "phone", label: "Phone number", placeholder: "Type the phone number" },
+										{ type: "input", key: "mail", label: "Email", placeholder: "Type the email" },
+										{ type: "datepicker", key: "hired", label: "Hired" },
+									]
+								},
+								{ type: "position" },
+							],
+						},
+					},
+				},
+			});
+
+			editor.diagram.addShape("personal", {
+				...PERSONAL_SHAPE,
+				eventHandlers: {
+					onclick: {
+						"toggle--open-menu": openMenu,
+					}
+				},
+			});
+
+			const editorContainer = document.querySelector("#editor");
+			const diagramContainer = document.querySelector("#diagram");
+			const controls = document.querySelector("#control");
+			const container = document.querySelector("#container");
+			
+			const CONTAINER_WITH_EDITOR = "dhx_sample-container__with-editor";
+			const CONTAINER_WITHOUT_EDITOR = "dhx_sample-container__without-editor";
+
+			function expand() {
+				diagramContainer.style.display = "none";
+				controls.style.display = "none";
+				editorContainer.style.display = "block";
+				container.classList.remove(CONTAINER_WITHOUT_EDITOR);
+				container.classList.add(CONTAINER_WITH_EDITOR);
+			}
+
+			function collapse() {
+				diagramContainer.style.display = "block";
+				controls.style.display = "flex";
+				editorContainer.style.display = "none";
+				container.classList.remove(CONTAINER_WITH_EDITOR);
+				container.classList.add(CONTAINER_WITHOUT_EDITOR);
+
+				diagram.selection.add({ id: editor.diagram.selection.getItem()?.id });
+			}
+
+			function runEditor() {
+				expand();
+				editor.import(diagram);
+				editor.diagram.selection.add({ id: diagram.selection.getItem()?.id });
+			}
+
+			const contextMenu = new dhx.ContextMenu(null, {
+				css: "dhx_widget--bg_gray",
+				data: [
+					{
+						"type": "menuItem",
+						"id": "mail",
+						"value": "Mail",
+						"icon": "mdi mdi-email"
+					},
+					{
+						"type": "menuItem",
+						"id": "call",
+						"value": "Call",
+						"icon": "mdi mdi-phone"
+					},
+					{
+						"type": "menuItem",
+						"id": "site",
+						"value": "Open Site",
+						"icon": "mdi mdi-open-in-new"
+					}
+				],
+			});
+
+			contextMenu.events.on("click", function (id) {
+				const item = diagram.selection.getItem() ||	editor.diagram.selection.getItem();
+				switch (id) {
+					case "mail":
+						window.open('mailto:' + item.mail + ',_blank');
+						break;
+					case "call":
+						window.open('tel:' + item.phone + ',_blank');
+						break;
+					case "site":
+						window.open('https://dhtmlx.com/docs/products/dhtmlxDiagram/', '_blank');
+						break;
+				}
+			});
+
+			function openMenu(event) {
+				event.preventDefault();
+				contextMenu.showAt(event.target, "bottom");
+			}
+		</script>
+	</body>
+</html>

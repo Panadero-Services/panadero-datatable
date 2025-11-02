@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- meta block -->
+		<title>Diagram. Org chart mode. Shape search with combobox - DHTMLX Diagram</title>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" charset="utf-8">
+		
+		<link rel="shortcut icon" href="./common/favicon/favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="./common/favicon/icon-16.png" sizes="16x16" />
+		<link rel="icon" href="./common/favicon/icon-32.png" sizes="32x32" />
+		<link rel="icon" href="./common/favicon/icon-48.png" sizes="48x48" />
+		<link rel="icon" href="./common/favicon/icon-96.png" sizes="96x96" />
+		<link rel="icon" href="./common/favicon/icon-144.png" sizes="144x144" />
+		<!-- end meta block -->
+		<!-- icons -->
+		<link href="https://cdn.materialdesignicons.com/4.5.95/css/materialdesignicons.min.css?v=6.0.10" media="all" rel="stylesheet" type="text/css">
+		<!-- diagram -->
+		<link rel="stylesheet" href="./common/index.css?v=6.0.10">
+		<link rel="stylesheet" href="../codebase/diagram.css?v=6.0.10">
+		<script type="text/javascript" src="../codebase/diagram.js?v=6.0.10"></script>
+		<!-- suite GPL -->
+		<script src="https://cdn.dhtmlx.com/suite/edge/suite.js?v=6.0.10"></script>
+		<link rel="stylesheet" href="https://cdn.dhtmlx.com/suite/edge/suite.css?v=6.0.10">
+		<!-- custom sample head -->
+		<script type="text/javascript" src="./common/data.js?v=6.0.10"></script>
+		<!-- custom sample head -->
+		<style>
+			.dhx_sample-container {
+				height: calc(100% - 120px);
+				margin-top: 0;
+			}
+			.dhx_sample-container__widget {
+				height: 500px;
+				width: 80%;
+				border-style: solid;
+				border-color: #DFDFDF;
+				border-width: 0 1px 1px 1px;
+			}
+			.dhx_sample-combobox__container {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				width: 400px;
+			}
+			.dhx_combobox {
+				margin: 0;
+			}
+			.toggle--open-menu {
+				position: absolute;
+				right: 2px;
+				top: 10px;
+				cursor: pointer;
+				height: 20px;
+				width: 20px;
+			}
+			.dhx_diagram_item--selected {
+				--dhx-selected-border-dashed: 2px solid #8c8c8c;
+			}
+			.dhx_diagram_template_a_box {
+				background-color: transparent;
+			}
+			.dhx_diagram_template_a_box {
+				padding: 0;
+				border: var(--dhx-border);
+				background-color: var(--dhx-background-primary);
+				overflow: hidden;
+			}
+			.dhx_diagram_template_a {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				width: 100%;
+				height: 100%;
+				padding: 12px;
+			}
+			.dhx_diagram_template_a__inside {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				width: 100%;
+			}
+			.dhx_diagram_template_a__picture {
+				width: 90px;
+				min-width: 90px;
+				background: center center/cover no-repeat var(--dhx-background-secondary);
+			}
+			.dhx_diagram_template_a__picture:before {
+				content: "";
+				display: block;
+				padding-top: 100%;
+			}
+			.dhx_diagram_template_a__body {
+				padding-left: 12px;
+				min-width: 200px;
+			}
+			.dhx_diagram_template_a__title,
+			.dhx_diagram_template_a__text {
+				font-family: var(--dhx-font-family);
+				font-weight: var(--dhx-font-weight-regular);
+				font-size: var(--dhx-font-size-normal);
+				white-space: nowrap;
+				text-overflow: ellipsis;
+				overflow: hidden;
+			}
+			.dhx_diagram_template_a__title {
+				text-align: start;
+				color: var(--dhx-font-color-primary);
+				font-weight: var(--dhx-font-weight-medium);
+			}
+			.dhx_diagram_template_a__row {
+				display: -webkit-box;
+				display: -ms-flexbox;
+				display: flex;
+				-webkit-box-align: center;
+				-ms-flex-align: center;
+				align-items: center;
+				margin: 4px 0;
+			}
+			.dhx_diagram_template_a__icon {
+				font-size: 18px;
+				margin-right: 4px;
+				color: var(--dhx-font-color-secondary);
+			}
+			.dhx_diagram_template_a__text {
+				color: var(--dhx-font-color-primary);
+			}
+			.dhx_diagram_template_a__link {
+				color: var(--dhx-color-primary);
+			}
+		</style>
+	</head>
+	<body>
+		<header class="dhx_sample-header">
+			<div class="dhx_sample-header__main">
+				<nav class="dhx_sample-header__breadcrumbs">
+					<ul class="dhx_sample-header-breadcrumbs">
+						<li class="dhx_sample-header-breadcrumbs__item">
+							<a href="./index.html" class="dhx_sample-header-breadcrumbs__link">Back to Diagram samples</a>
+						</li>
+					</ul>
+				</nav>
+				<h1 class="dhx_sample-header__title">
+					<div class="dhx_sample-header__content">
+						Diagram. Org chart mode. Shape search with combobox
+					</div>
+				</h1>
+			</div>
+		</header>
+		<section class="dhx_sample-controls">
+			<div class="dhx_sample-combobox__container" id="combobox"></div>
+		</section>
+		<section class="dhx_sample-container">
+			<div class="dhx_sample-container__widget" id="diagram"></div>
+		</section>
+		<script>
+			const combobox = new dhx.Combobox("combobox", {
+				label: "Search:",
+				labelPosition: "left"
+			});
+
+			combobox.data.parse(medicalWorkers.map(({ name, id }) => ({ value: name, id })));
+
+			const diagram = new dhx.Diagram("diagram", {
+				type: "org",
+				defaultShapeType: "employeeCard",
+				select: true,
+			});
+
+			diagram.addShape("employeeCard", {
+				template: ({ name, photo, post, phone, mail }) => (`
+					<div class="dhx_diagram_template_a_box dhx_diagram_template_a">
+						<div class="dhx_diagram_template_a__inside">
+							<div class="dhx_diagram_template_a__picture" style="background-image: url(${photo});"></div>
+							<div class="dhx_diagram_template_a__body">
+								<div class="dhx_diagram_template_a__title">${name}</div>
+								<div class="dhx_diagram_template_a__row">
+									<span class="dhx_diagram_template_a__text">${post}</span>
+								</div>
+								<div class="dhx_diagram_template_a__row">
+									<span class="dhx_diagram_template_a__icon mdi mdi-cellphone-android"></span>
+									<span class="dhx_diagram_template_a__text">${phone}</span>
+								</div>
+								<div class="dhx_diagram_template_a__row">
+									<span class="dhx_diagram_template_a__icon mdi mdi-email-outline"></span>
+									<span class="dhx_diagram_template_a__text">
+										<a class="dhx_diagram_template_a__link" href="mailto:${mail}" target="_blank">${mail}</a>
+									</span>
+								</div>
+							</div>
+							<div class="toggle--open-menu">
+								<span class="dhx_diagram_template_a__icon mdi mdi-dots-vertical"></span>
+							</div>
+						</div>
+					</div>
+				`),
+				eventHandlers: {
+					onclick: {
+						"toggle--open-menu": openMenu,
+					}
+				},
+				defaults: {	height: 115, width: 330	},
+			});
+			diagram.data.parse(medicalWorkers);
+
+			const contextMenu = new dhx.ContextMenu(null, {
+				css: "dhx_widget--bg_gray"
+			});
+
+			contextMenu.data.parse([
+				{ "type": "menuItem", "id": "mail",	"value": "Mail", "icon": "mdi mdi-email" },
+				{ "type": "menuItem", "id": "call",	"value": "Call", "icon": "mdi mdi-phone" },
+				{ "type": "menuItem", "id": "site",	"value": "Open Site", "icon": "mdi mdi-open-in-new" }
+			]);
+
+			contextMenu.events.on("click", function (id) {
+				const item = diagram.selection.getItem();
+				if (!item) {
+					return;
+				}
+				switch (id) {
+					case "mail":
+						window.open('mailto:' + item.mail + ',_blank');
+						break;
+					case "call":
+						window.open('tel:' + item.phone + ',_blank');
+						break;
+					case "site":
+						window.open('https://dhtmlx.com/docs/products/dhtmlxDiagram/', '_blank');
+						break;
+				}
+			});
+
+			function openMenu(event) {
+				event.preventDefault();
+				contextMenu.showAt(event.target, "bottom");
+			}
+
+			function show(event) {
+				event.preventDefault();
+				contextMenu.showAt(event.target, "bottom");
+			}
+
+			combobox.events.on("change", function(id) {
+				if (!id) return;
+				diagram.showItem(id);
+				diagram.selection.add({ id });
+			});
+
+			combobox.events.on("beforeOpen", function(){
+				combobox.clear();
+			});
+
+			diagram.events.on("emptyAreaClick", function() {
+				combobox.clear();
+			});
+
+			diagram.events.on("shapeClick", function(id) {
+				combobox.setValue(id);
+			});
+		</script>
+	</body>
+</html>
