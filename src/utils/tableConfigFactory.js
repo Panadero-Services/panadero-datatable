@@ -2,13 +2,13 @@
 import { defaultTableConfig, commonTableConfigs } from '../config/tableDefaults.js'
 
 export function createTableConfig(config) {
-  console.log('createTableConfig called with:', config)
+  console.debug('createTableConfig called with:', config)
   // Merge with defaults
   const mergedConfig = {
     ...defaultTableConfig,
     ...config
   }
-  console.log('createTableConfig merged result:', mergedConfig)
+  console.debug('createTableConfig merged result:', mergedConfig)
 
   // Merge column defaults
   if (mergedConfig.columns) {

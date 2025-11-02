@@ -1,43 +1,27 @@
-import { computed, ref } from 'vue'
-import { useScaling } from 'panadero-shared-styling'
+import { computed, inject } from 'vue'
+// REMOVE THIS: import { useScaling } from 'panadero-shared-styling'
 
 export function useCommonSnippets() {
-  // Get scaling styles
-  const { scalingStyles } = useScaling()
-  
-  // Default settings store (can be overridden by parent)
-  const store = ref({
-    dark: false,
+  // Get settings store from parent (same pattern as inventory package)
+  const settingsStore = inject('settingsStore', { 
+    dark: false, 
     fontSize: 14,
     compactLayout: false,
     autoSave: true
   })
   
-  // Dark mode classes
-  const darkModeClasses = computed(() => {
-    const isDark = store.value.dark === true
-    return {
-      container: isDark ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900',
-      card: isDark ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-200',
-      tableHeader: isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-50 text-gray-500',
-      tableRow: isDark ? 'hover:bg-gray-700 border-gray-700' : 'hover:bg-gray-50',
-      modal: isDark ? 'bg-gray-800' : 'bg-white',
-      text: isDark ? 'text-gray-100' : 'text-gray-900',
-      textSecondary: isDark ? 'text-gray-400' : 'text-gray-500',
-      border: isDark ? 'border-gray-700' : 'border-gray-200',
-      input: isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300',
-      button: isDark ? 'bg-gray-600 hover:bg-gray-500 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white',
-      buttonSecondary: isDark ? 'bg-gray-500 hover:bg-gray-400 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-900',
-      iconDanger: isDark ? 'text-red-500' : 'hover:bg-red-300 text-red-600',
-      icon: isDark ? 'text-blue-500' : 'hover:bg-blue-300 text-blue-600',
-      bgSecondary: isDark ? 'bg-gray-700' : 'bg-gray-100'
-    }
-  })
+  // INJECT scaling styles from parent (provided by parent wrapper)
+  const scalingStyles = inject('scalingStyles', {})
+  
+  // INJECT design system from parent (provided by parent wrapper)
+  const designSystem = inject('designSystem', {})
+  
+  // Remove darkModeClasses - use designSystem instead
   
   // Common computed properties
-  const isDark = computed(() => store.value.dark === true)
-  const fontSize = computed(() => store.value.fontSize || 14)
-  const compactLayout = computed(() => store.value.compactLayout || false)
+  const isDark = computed(() => settingsStore.dark === true)
+  const fontSize = computed(() => settingsStore.fontSize || 14)
+  const compactLayout = computed(() => settingsStore.compactLayout || false)
   
   // Status options
   const statusOptions = [
@@ -100,7 +84,7 @@ export function useCommonSnippets() {
   
   const showNotification = (message, type = 'info') => {
     // Simple notification - can be enhanced with a proper notification system
-    console.log(`[${type.toUpperCase()}] ${message}`)
+    console.debug(`[${type.toUpperCase()}] ${message}`)
     
     // Create a simple toast notification
     const toast = document.createElement('div')
@@ -119,39 +103,18 @@ export function useCommonSnippets() {
     }, 3000)
   }
   
-  const loadSettings = () => {
-    // Load settings from localStorage or default values
-    const savedSettings = localStorage.getItem('panadero-settings')
-    if (savedSettings) {
-      try {
-        store.value = { ...store.value, ...JSON.parse(savedSettings) }
-      } catch (error) {
-        console.warn('Failed to load settings:', error)
-      }
-    }
-  }
-  
-  const saveSettings = () => {
-    // Save settings to localStorage
-    try {
-      localStorage.setItem('panadero-settings', JSON.stringify(store.value))
-    } catch (error) {
-      console.warn('Failed to save settings:', error)
-    }
-  }
-  
   return {
     // Store
-    store,
+    settingsStore,
     
     // Computed
-    darkModeClasses,
     isDark,
     fontSize,
     compactLayout,
     
-    // Scaling
+    // Injected from parent
     scalingStyles,
+    designSystem,
     
     // Options
     statusOptions,
@@ -163,8 +126,6 @@ export function useCommonSnippets() {
     formatDate,
     formatDateTime,
     confirmAction,
-    showNotification,
-    loadSettings,
-    saveSettings
+    showNotification
   }
 }

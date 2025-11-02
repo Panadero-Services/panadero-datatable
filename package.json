@@ -1,6 +1,6 @@
 {
   "name": "panadero-datatable",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "Enhanced dynamic data table with KPIs, filters, forms, and modals for all Panadero packages",
   "main": "index.js",
   "type": "module",
@@ -30,12 +30,13 @@
   "license": "MIT",
   "peerDependencies": {
     "vue": "^3.0.0",
-    "panadero-shared-styling": "^1.0.0"
+    "panadero-shared-styling": "github:Panadero-Services/panadero-shared-styling"
   },
   "dependencies": {
     "axios": "^1.6.0",
     "panadero-shared-components": "file:../panadero-shared-components",
-    "panadero-filters": "file:../panadero-filters"
+    "panadero-filters": "file:../panadero-filters",
+    "panadero-shared-styling": "file:../panadero-shared-styling"
   },
   "repository": {
     "type": "git",

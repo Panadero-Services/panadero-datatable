@@ -12,7 +12,7 @@ export function useDynamicAPI(tableName) {
   const endpoints = computed(() => {
     // Use tableName directly - let the backend handle routing
     const endpoint = `${apiBase}/${tableName}`
-    console.log('Generated endpoint for', tableName, ':', endpoint)
+    console.debug('Generated endpoint for', tableName, ':', endpoint)
     return {
       list: endpoint,
       show: (id) => `${endpoint}/${id}`,

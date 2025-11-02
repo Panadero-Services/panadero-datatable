@@ -1,273 +1,229 @@
-// v1.0.0 - Data table composable for panadero-datatable
-import { ref, computed, watch, onMounted } from 'vue'
-import { useDynamicAPI } from './useDynamicAPI.js'
+// useDataTable - Main Data Table Logic (Refactored)
+// @version 1.0.0
+// @date 29-Sep-2025
+// @description Orchestrates all data table operations using smaller composables
+import { computed, onMounted } from 'vue'
+import { useCascadingFilters } from 'panadero-filters'
+import { useDataTableState } from './useDataTableState.js'
+import { useDataTableCRUD } from './useDataTableCRUD.js'
+import { useDataTableAnalytics } from './useDataTableAnalytics.js'
+import { useDataTablePagination } from './useDataTablePagination.js'
+import { useDataTableData } from './useDataTableData.js'
+import { useDataTableExport } from './useDataTableExport.js'
 
-export function useDataTable(config, externalData = null) {
-  const {
-    table: tableName,
-    title = 'Data Table',
-    columns = [],
-    searchable = true,
-    sortable = true,
-    selectable = true,
-    pagination = true,
-    itemsPerPage = 10,
-    refreshInterval = null
-  } = config
+export function useDataTable(props, config) {
+  // Get state from state composable
+  const state = useDataTableState()
 
-  // Use external data if provided, otherwise use dynamic API
-  const data = ref(externalData || [])
-  const loading = ref(false)
-  const error = ref(null)
-  
-  // Only use dynamic API if no external data is provided
-  let api = null
-  if (!externalData) {
-    const apiResult = useDynamicAPI(tableName)
-    api = apiResult.api
-  }
-  
-  // Data loading function
-  const loadData = async () => {
-    // If external data is provided, don't load from API
-    if (externalData) {
-      return
+  // Filter configuration setup
+  const filterConfigs = config.filters ? config.filters.map(filter => {
+    // Build the correct field path for nested relationships
+    let fieldPath = filter.field || filter.key
+    if (filter.relationship && filter.field) {
+      // Convert relationship name to snake_case and combine with field
+      const relationshipKey = filter.relationship.replace(/([A-Z])/g, '_$1').toLowerCase()
+      fieldPath = `${relationshipKey}.${filter.field}`
     }
     
-    try {
-      loading.value = true
-      const response = await api.list()
-      data.value = Array.isArray(response) ? response : []
-    } catch (err) {
-      error.value = err.response?.data?.message || err.message
-    } finally {
-      loading.value = false
+    return {
+      key: filter.key,
+      field: fieldPath,
+      label: filter.label,
+      pluralLabel: filter.label + 's',
+      searchable: true,
+      getValue: (item) => {
+        // Handle nested relationship fields like 'product_type.name'
+        if (fieldPath.includes('.')) {
+          const value = getNestedValue(item, fieldPath)
+          // If the value is an object, extract the name field
+          if (value && typeof value === 'object' && value.name) {
+            return value.name
+          }
+          return value
+        }
+        // Handle direct fields
+        const value = item[filter.key]
+        // If the value is an object, extract the name field
+        if (value && typeof value === 'object' && value.name) {
+          return value.name
+        }
+        return value
+      },
+      getIcon: (item) => {
+        // Product-specific icons based on the original implementation
+        if (filter.key === 'product_type') {
+          const icons = {
+            'Raw Material': 'fas fa-seedling',
+            'Finished Product': 'fas fa-box',
+            'Semi-Finished': 'fas fa-cogs',
+            'Component': 'fas fa-puzzle-piece',
+            'Service': 'fas fa-tools',
+            'Other': 'fas fa-cube'
+          }
+          const value = getNestedValue(item, fieldPath)
+          return icons[value] || 'fas fa-cube'
+        }
+        return 'fas fa-cube'
+      }
     }
-  }
+  }) : []
 
-  // Data state
-  const selectedItems = ref([])
-  const searchQuery = ref('')
-  const sortField = ref('id')
-  const sortDirection = ref('asc')
-  const currentPage = ref(1)
+  // Define filter dependencies - GENERIC from config
+  const dependencies = config.filterDependencies || []
 
-  // Computed properties
-  const allData = computed(() => data.value)
+  // Use cascading filters
+  const {
+    filterStates,
+    searchQuery: baseSearchQuery,
+    allFilterItems,
+    filteredData: baseFilteredData,
+    stats,
+    selectFilter,
+    clearAllFilters
+  } = useCascadingFilters(state.data, filterConfigs, dependencies)
 
+  // Apply search filtering on top of the base filtered data
   const filteredData = computed(() => {
-    let filtered = [...data.value]
-
-    // Search filtering
-    if (searchQuery.value && searchable) {
-      const query = searchQuery.value.toLowerCase()
+    let filtered = baseFilteredData.value
+    
+    // Apply search filtering if search query exists
+    if (state.searchQuery.value && state.searchQuery.value.trim()) {
+      const query = state.searchQuery.value.toLowerCase().trim()
       filtered = filtered.filter(item => {
-        return columns.some(column => {
-          if (column.searchable === false) return false
-          const value = getNestedValue(item, column.key)
-          return value && value.toString().toLowerCase().includes(query)
-        })
-      })
-    }
-
-    // Sorting
-    if (sortable && sortField.value) {
-      filtered.sort((a, b) => {
-        const aVal = getNestedValue(a, sortField.value)
-        const bVal = getNestedValue(b, sortField.value)
+        // Use searchable fields from config
+        const searchFields = config.searchFields || ['name', 'identifier', 'title', 'description', 'comment']
+        const searchText = searchFields.map(field => {
+          const value = getNestedValue(item, field)
+          return value ? value.toString().toLowerCase() : ''
+        }).join(' ')
         
-        if (aVal === bVal) return 0
-        
-        const comparison = aVal < bVal ? -1 : 1
-        return sortDirection.value === 'asc' ? comparison : -comparison
+        return searchText.includes(query)
       })
     }
 
     return filtered
   })
 
-  const paginatedData = computed(() => {
-    if (!pagination) {
-      return filteredData.value
-    }
-
-    const start = (currentPage.value - 1) * itemsPerPage
-    const end = start + itemsPerPage
-    return filteredData.value.slice(start, end)
-  })
-
-  const totalPages = computed(() => {
-    if (!pagination) return 1
-    return Math.ceil(filteredData.value.length / itemsPerPage)
-  })
-
-  const allSelected = computed(() => {
-    if (!selectable || !paginatedData.value.length) return false
-    return selectedItems.value.length === paginatedData.value.length
-  })
-
-  // Methods
+  // Helper function to get nested object values
   const getNestedValue = (obj, path) => {
-    return path.split('.').reduce((current, key) => current?.[key], obj)
+    return path.split('.').reduce((current, key) => {
+      return current && current[key] !== undefined ? current[key] : null
+    }, obj)
   }
 
-  const refresh = () => {
-    loadData()
-  }
+  // Get data operations
+  const { fetchData, fetchDropdownData } = useDataTableData(props, config, state)
 
-  const handleSort = (field) => {
-    if (!sortable) return
-    
-    if (sortField.value === field) {
-      sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
-    } else {
-      sortField.value = field
-      sortDirection.value = 'asc'
-    }
-  }
+  // Get CRUD operations
+  const { createItem, updateItem, deleteItem, bulkDeleteItems } = useDataTableCRUD(props, config, state, fetchData)
 
-  const handleSelectAll = () => {
-    if (!selectable) return
-    
-    if (allSelected.value) {
-      selectedItems.value = []
-    } else {
-      selectedItems.value = paginatedData.value.map(item => item.id)
-    }
-  }
+  // Get analytics
+  const { kpis, productTypeDistribution, brandDistribution } = useDataTableAnalytics(config, filteredData)
 
-  const handleSelectItem = (itemId) => {
-    if (!selectable) return
-    
-    const index = selectedItems.value.indexOf(itemId)
-    if (index > -1) {
-      selectedItems.value.splice(index, 1)
-    } else {
-      selectedItems.value.push(itemId)
-    }
-  }
-
-  const handleSearch = (query) => {
-    searchQuery.value = query
-    currentPage.value = 1 // Reset to first page when searching
-  }
-
-  const handlePageChange = (page) => {
-    currentPage.value = page
-  }
-
-  const handleCreate = async (itemData) => {
-    try {
-      const newItem = await api.store(itemData)
-      data.value.unshift(newItem)
-      return newItem
-    } catch (err) {
-      throw err
-    }
-  }
-
-  const handleUpdate = async (id, itemData) => {
-    try {
-      const updatedItem = await api.update(id, itemData)
-      const index = data.value.findIndex(item => item.id === id)
-      if (index > -1) {
-        data.value[index] = updatedItem
-      }
-      return updatedItem
-    } catch (err) {
-      throw err
-    }
-  }
-
-  const handleDelete = async (id) => {
-    try {
-      // Only call API if not using external data
-      if (api) {
-        await api.destroy(id)
-      }
-      // Remove from local data
-      data.value = data.value.filter(item => item.id !== id)
-      selectedItems.value = selectedItems.value.filter(itemId => itemId !== id)
-    } catch (err) {
-      throw err
-    }
-  }
-
-  const handleBulkDelete = async () => {
-    try {
-      // Only call API if not using external data
-      if (api) {
-        await Promise.all(selectedItems.value.map(id => api.destroy(id)))
-        // Remove from local data
-        data.value = data.value.filter(item => !selectedItems.value.includes(item.id))
-      }
-      // Note: External data handling is done in the component that uses this composable
-      
-      // Clear selection
-      selectedItems.value = []
-    } catch (err) {
-      throw err
-    }
-  }
-
-  // Auto-refresh setup
-  let refreshTimer = null
-  if (refreshInterval && refreshInterval > 0) {
-    refreshTimer = setInterval(refresh, refreshInterval)
-  }
-
-  // Watch for external data changes
-  if (externalData) {
-    watch(() => externalData, (newData) => {
-      data.value = Array.isArray(newData) ? newData : []
-    }, { immediate: true, deep: true })
-  }
-
-  // Lifecycle
-  onMounted(() => {
-    // Only load data if no external data is provided
-    if (!externalData) {
-      loadData()
-    }
+  // Get pagination
+  const pagination = useDataTablePagination(filteredData, {
+    currentPage: 1,
+    itemsPerPage: 20
   })
 
-  // Cleanup
-  const cleanup = () => {
-    if (refreshTimer) {
-      clearInterval(refreshTimer)
+  // Get export functionality
+  const { exportData } = useDataTableExport(props, config, state, getNestedValue)
+
+  // Refresh functionality
+  const handleRefresh = async () => {
+    const beforeCount = filteredData.value.length
+    await fetchData()
+    const afterCount = filteredData.value.length
+    const newRecords = afterCount - beforeCount
+    
+    return {
+      newRecords,
+      message: newRecords > 0 ? `Found ${newRecords} new record(s)` : 'Data refreshed successfully'
     }
   }
+
+  // Helper function to get form props dynamically
+  const getFormProps = () => {
+    const formProps = {}
+    
+    // Always include formConfig if it exists
+    if (config.formConfig) {
+      formProps.formConfig = config.formConfig
+    }
+    
+    // Include dropdownData for GenericForm
+    formProps.dropdownData = state.dropdownData.value
+    
+    if (config.formProps) {
+      // Use form props mapping from config
+      Object.entries(config.formProps).forEach(([propName, dataKey]) => {
+        formProps[propName] = state.dropdownData.value[dataKey] || []
+      })
+    } else {
+      // Default mapping for ProductForm
+      formProps.productTypes = state.dropdownData.value.productTypes || []
+      formProps.productGroups = state.dropdownData.value.productGroups || []
+      formProps.brands = state.dropdownData.value.brands || []
+      formProps.units = state.dropdownData.value.units || []
+    }
+    
+    return formProps
+  }
+
+  // Helper function to get display name for items
+  const getItemDisplayName = (item) => {
+    return item.name || item.title || item.identifier || `Item #${item.id}`
+  }
+
+  // Initialize data on mount
+  onMounted(async () => {
+    console.debug('DataTable: onMounted started')
+    await fetchData()
+    await fetchDropdownData()
+    console.debug('DataTable: onMounted completed')
+  })
 
   return {
-    // Data
-    data: paginatedData,
-    allData,
-    selectedItems,
-    searchQuery,
-    sortField,
-    sortDirection,
-    currentPage,
-    totalPages,
-    allSelected,
-    loading,
-    error,
+    // State
+    ...state,
 
-    // Methods
-    loadData,
-    refresh,
-    handleSort,
-    handleSelectAll,
-    handleSelectItem,
-    handleSearch,
-    handlePageChange,
-    handleCreate,
-    handleUpdate,
-    handleDelete,
-    handleBulkDelete,
-    cleanup,
-
-    // Computed
+    // Filtered data
     filteredData,
-    paginatedData
+    filterStates,
+    allFilterItems,
+    stats,
+
+    // Pagination
+    ...pagination,
+
+    // Analytics
+    kpis,
+    productTypeDistribution,
+    brandDistribution,
+
+    // CRUD operations
+    createItem,
+    updateItem,
+    deleteItem,
+    bulkDeleteItems,
+
+    // Export
+    exportData,
+    
+    // Refresh
+    handleRefresh,
+    
+    // Helpers
+    getFormProps,
+    getItemDisplayName,
+    getNestedValue,
+
+    // Data fetching
+    fetchData,
+    fetchDropdownData,
+
+    // Filter operations
+    selectFilter,
+    clearAllFilters
   }
 }

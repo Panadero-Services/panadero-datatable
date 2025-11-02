@@ -1,7 +1,7 @@
 # Panadero DataTable Module
 
-**Version:** 1.0.14
-**Release Date:** 23 September 2025  
+**Version:** 1.0.15
+**Release Date:** 01 November 2025  
 **Status:** Production Ready
 
 A dynamic, configurable data table component for all Panadero packages with full integration to `panadero-shared-styling`.
