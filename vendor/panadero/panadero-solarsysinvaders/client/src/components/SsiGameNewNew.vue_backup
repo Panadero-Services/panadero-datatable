@@ -1,0 +1,1208 @@
+<script setup>
+import { ref, onMounted, onUnmounted, computed } from 'vue';
+
+import { ShipRenderer } from '../core/ShipRenderer';  // Updated import
+import { CanvasManager } from '../core/Canvas';
+import { useMultiplayer } from '../composables/useMultiplayer';
+import { useGameUtils } from '../composables/useGameUtils'; // Add this import
+import { useGameDrawing } from '../composables/useGameDrawing'; // Add this import
+import { useGameInput } from '../composables/useGameInput'; // Add this import
+import { useGameState } from '../composables/useGameState'; // Add this import
+import { useGameComputed } from '../composables/useGameComputed'; // Add this import
+import { useGameSocket } from '../composables/useGameSocket'; // Add this import
+import GameMiniMap from './GameMiniMap.vue'; // Add this import
+import GameInfoPanel from './GameInfoPanel.vue';
+import { soundManager } from '../core/SoundManager';
+import ResourcePanel from './ResourcePanel.vue';
+import Chat from './ui/Chat.vue';
+import { GAME_CONFIG } from '../../../shared/gameConfig.js';
+import HelpOverlay from './ui/HelpOverlay.vue';
+
+console.log('🎮 Game Component: Loading');
+
+// Get utility functions
+const { 
+    isValidFieldPosition, 
+    createOrUpdateField, 
+    spawnCollectible, 
+    worldToScreen, 
+    isInSafeZone 
+} = useGameUtils();
+
+// Get drawing functions
+const {
+    drawStarfield,
+    drawShip,
+    drawHome,
+    drawStar,
+    drawDroplet,
+    drawCrystal,
+    drawCollectible,
+    drawSafeZone,
+    drawResourceField,
+    drawBullet
+} = useGameDrawing();
+
+// Get state management functions
+const {
+    parseHelpContent,
+    fetchSSOTData,
+    handleCollectible,
+    createScorePopup
+} = useGameState();
+
+// Get computed functions
+const {
+    createInfoItems,
+    createFilteredContent,
+    createGameServerInfo,
+    parseHelpCommand
+} = useGameComputed();
+
+// Get socket functions
+const {
+    setupSocketEventHandlers,
+    setupWindowEventHandlers,
+    cleanupEventHandlers
+} = useGameSocket();
+
+// Define game constants
+
+// Map constants
+
+// Field configuration
+
+// Check if position is valid for new field
+// function isValidFieldPosition(x, y, existingFields) {
+//     for (const field of existingFields.values()) {
+//         const dx = x - field.x;
+//         const dy = y - field.y;
+//         const distance = Math.sqrt(dx * dx + dy * dy);
+//         if (distance < GAME_CONFIG.FIELD.MIN_DISTANCE) {
+//             return false;
+//         }
+//     }
+//     return true;
+// }
+
+// Create field at valid position
+// function createOrUpdateField(fieldId) {
+//     let x, y;
+//     do {
+//         x = GAME_CONFIG.WORLD_MIN_X + Math.random() * GAME_CONFIG.WORLD_WIDTH;
+//         y = GAME_CONFIG.WORLD_MIN_Y + Math.random() * GAME_CONFIG.WORLD_HEIGHT;
+//     } while (!isValidFieldPosition(x, y, resourceFields.value));
+
+//     resourceFields.value.set(fieldId, {
+//         id: fieldId,
+//         x: x,
+//         y: y,
+//         radius: GAME_CONFIG.FIELD.RADIUS,
+//         innerRadius: GAME_CONFIG.FIELD.INNER_RADIUS,
+//         lastUpdate: Date.now()
+//     });
+
+//     // Log field position
+//     console.log(`Resource Field ${fieldId} positioned at:`, {
+//         x: Math.round(x),
+//         y: Math.round(y),
+//         timestamp: new Date().toISOString()
+//     });
+// }
+
+// Also log when fields reposition
+setInterval(() => {
+    console.log('\nCurrent Resource Field Positions:');
+    resourceFields.value.forEach((field, id) => {
+        console.log(`Field ${id}:`, {
+            x: Math.round(field.x),
+            y: Math.round(field.y),
+            lastUpdate: new Date(field.lastUpdate).toISOString()
+        });
+    });
+}, 5 * 60 * 1000);  // Log every 5 minutes
+
+// Spawn collectibles within field
+// function spawnCollectible(field) {
+//     // Count existing collectibles
+//     const fieldCollectibles = Array.from(gameState.value?.collectibles?.values() || [])
+//         .filter(c => {
+//             const dx = c.x - field.x;
+//             const dy = c.y - field.y;
+//             return Math.sqrt(dx * dx + dy * dy) <= field.radius;
+//         });
+
+//     const innerCollectibles = fieldCollectibles.filter(c => {
+//         const dx = c.x - field.x;
+//         const dy = c.y - field.y;
+//         return Math.sqrt(dx * dx + dy * dy) <= field.innerRadius;
+//     });
+
+//     // Only spawn if field isn't full
+//     if (fieldCollectibles.length < GAME_CONFIG.FIELD.MAX_COLLECTIBLES.TOTAL) {
+//         // Decide spawn radius (inner or outer)
+//         const useInnerRadius = innerCollectibles.length < GAME_CONFIG.FIELD.MAX_COLLECTIBLES.INNER;
+//         const spawnRadius = useInnerRadius ? field.innerRadius : field.radius;
+        
+//         // Random angle and adjusted distance (more likely closer to center)
+//         const angle = Math.random() * Math.PI * 2;
+//         const distance = Math.pow(Math.random(), 1.5) * spawnRadius;  // Power makes center more likely
+        
+//         // Random collectible type
+//         const type = COLLECTIBLE_TYPES[Math.floor(Math.random() * COLLECTIBLE_TYPES.length)];
+        
+//         const collectible = {
+//             id: 'collectible_' + Date.now(),
+//             x: field.x + Math.cos(angle) * distance,
+//             y: field.y + Math.sin(angle) * distance,
+//             ...type,
+//             createdAt: Date.now()
+//         };
+
+//         gameState.value?.collectibles?.set(collectible.id, collectible);
+//     }
+// }
+
+const props = defineProps({
+    multiplayer: {
+        type: Boolean,
+        default: true
+    },
+    serverUrl: {
+        type: String,
+        default: import.meta.env.VITE_GAME_SERVER_URL || import.meta.env.VITE_GAME_SERVER_URL_NETWORK
+    },
+    self: {  // Add this prop
+        type: String,
+        default: 'nope'
+    }
+});
+
+// Add this after the props definition
+console.log('🔧 Game Server URLs:');
+console.log('  VITE_GAME_SERVER_URL:', import.meta.env.VITE_GAME_SERVER_URL, '(primary)');
+console.log('  VITE_GAME_SERVER_URL_NETWORK:', import.meta.env.VITE_GAME_SERVER_URL_NETWORK, '(fall-back)');
+console.log('  Final serverUrl:', props.serverUrl);
+
+// At the top with other refs
+const canvas = ref(null);
+const canvasManager = ref(null);
+const isRunning = ref(false);
+const ship = ref(null);
+const resourceFields = ref(new Map());  // Add this BEFORE it's used
+
+// Add camera state
+const camera = ref({
+    x: 0,
+    y: 0,
+    scale: 1
+});
+
+// Add function to convert world coordinates to screen coordinates
+// const worldToScreen = (worldX, worldY) => {
+//     const screenX = (worldX - camera.value.x) * camera.value.scale + GAME_CONFIG.CANVAS_WIDTH / 2;
+//     const screenY = (worldY - camera.value.y) * camera.value.scale + GAME_CONFIG.CANVAS_HEIGHT / 2;
+//     return { x: screenX, y: screenY };
+// };
+
+// Update drawStarfield to create infinite star effect
+// const drawStarfield = (ctx) => {
+//     ctx.fillStyle = '#000000';
+//     ctx.fillRect(0, 0, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+
+//     // Update the star layers with higher counts
+//     const layers = [
+//         { count: 60,  parallax: 0.01, size: 0.8, brightness: 0.2 },  // Doubled from 30
+//         { count: 50,  parallax: 0.02, size: 1.0, brightness: 0.3 },  // Doubled from 25
+//         { count: 40,  parallax: 0.029, size: 1.3, brightness: 0.5 }, // Doubled from 20
+//         { count: 30,  parallax: 0.045, size: 1.7, brightness: 0.7 }, // Doubled from 15
+//         { count: 20,  parallax: 0.059, size: 2.0, brightness: 0.9 }  // Doubled from 10
+//     ];
+
+//     const time = Date.now() * 0.001;
+
+//     layers.forEach((layer, layerIndex) => {
+//         const viewX = camera.value.x * layer.parallax;
+//         const viewY = camera.value.y * layer.parallax;
+        
+//         const areaSize = GAME_CONFIG.CANVAS_WIDTH * 2;
+//         const startX = Math.floor(viewX / areaSize) * areaSize;
+//         const startY = Math.floor(viewY / areaSize) * areaSize;
+
+//         for (let areaX = startX - areaSize; areaX <= startX + areaSize; areaX += areaSize) {
+//             for (let areaY = startY - areaSize; areaY <= startY + areaSize; areaY += areaSize) {
+//                 for (let i = 0; i < layer.count; i++) {
+//                     const seed = (areaX + areaY * 1000 + i * 100 + layerIndex * 10000);
+//                     const x = areaX + Math.abs(Math.sin(seed * 0.37)) * areaSize;
+//                     const y = areaY + Math.abs(Math.cos(seed * 0.23)) * areaSize;
+                    
+//                     const starX = x - viewX;
+//                     const starY = y - viewY;
+                    
+//                     const flickerRate = 0.3 + (Math.sin(seed * 0.37) * 0.3);
+//                     const flickerAmount = 0.25 + (Math.cos(seed * 0.23) * 0.15);
+//                     const flicker = Math.sin(time * flickerRate + seed) * flickerAmount + 0.8;
+//                     const alpha = layer.brightness * flicker;
+                    
+//                     ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+//                     ctx.beginPath();
+//                     ctx.arc(starX, starY, layer.size, 0, Math.PI * 2);
+//                     ctx.fill();
+//                 }
+//             }
+//         }
+//     });
+// }
+
+// Initialize multiplayer
+const { gameState, isConnected, connect, sendInput, socket } = useMultiplayer({
+    serverUrl: props.serverUrl,
+    self: props.self  // Add this
+});
+
+// Define emits
+const emit = defineEmits(['bullet-created']);
+
+// Initialize refs at the top of the script
+const shipInfo = ref(null);  // Changed from an object to null initially
+const score = ref(0);
+
+// Add this ref for safe zone status
+const inSafeZone = ref(false);
+
+// Add at the top with other refs
+const prevPositions = ref(new Map());
+
+// Add this function before the gameLoop
+// const isInSafeZone = (x, y, playerId) => {
+//     if (!gameState.value?.homePositions) return false;
+    
+//     for (const [homeId, homePos] of Object.entries(gameState.value.homePositions)) {
+//         const dx = Math.abs(x - homePos.x);
+//         const dy = Math.abs(y - homePos.y);
+//         // Check if position is within safe zone (300 units)
+//         if (dx <= 150 && dy <= 150) { // 300/2 = 150 units from center
+//             return true;
+//         }
+//     }
+//     return false;
+// };
+
+const initCanvas = () => {
+    console.log('🎮 Initializing canvas');
+    if (!canvas.value) return false;
+    
+    // Set both the canvas element AND its drawing context size
+    canvas.value.style.width = `${GAME_CONFIG.CANVAS_WIDTH}px`;
+    canvas.value.style.height = `${GAME_CONFIG.CANVAS_HEIGHT}px`;
+    canvas.value.width = GAME_CONFIG.CANVAS_WIDTH;  // Important: this sets the drawing context size
+    canvas.value.height = GAME_CONFIG.CANVAS_HEIGHT;
+    
+    canvasManager.value = new CanvasManager(canvas.value, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+    ship.value = new ShipRenderer(GAME_CONFIG.CANVAS_WIDTH / 2, GAME_CONFIG.CANVAS_HEIGHT / 2, GAME_CONFIG.CANVAS_WIDTH, GAME_CONFIG.CANVAS_HEIGHT);
+    
+    // Set up emit function for ship
+    ship.value.emitEvent = (eventName) => {
+        if (eventName === 'shoot') {
+            soundManager.play('shoot');
+        }
+    };
+    
+    return true;
+};
+
+// Update ship drawing to use camera transform
+// const drawShip = (ctx, shipState) => {
+//     const screenPos = worldToScreen(shipState.position.x, shipState.position.y, camera.value);
+    
+//     ctx.save();
+//     ctx.translate(screenPos.x, screenPos.y);
+    
+//     // Draw ship first (existing ship drawing code)
+//     ctx.rotate(shipState.angle);
+//     ctx.strokeStyle = shipState.color;
+//     ctx.fillStyle = shipState.color;
+//     ctx.lineWidth = 2;
+    
+//     if (shipState.pattern === 'ufo') {
+//         // Main saucer body
+//         ctx.beginPath();
+//         ctx.ellipse(0, 0, 15, 6, 0, 0, Math.PI * 2);
+//         ctx.stroke();
+//         ctx.fill();
+        
+//         // Top dome
+//         ctx.beginPath();
+//         ctx.arc(0, -3, 8, Math.PI, 0, false);
+//         ctx.stroke();
+//         ctx.fill();
+        
+//         // Bottom lights - changed to black
+//         [-10, -5, 0, 5, 10].forEach(x => {
+//             ctx.beginPath();
+//             ctx.arc(x, 2, 1, 0, Math.PI * 2);
+//             ctx.fillStyle = 'black';  // Changed from 'white' to 'black'
+//             ctx.fill();
+//         });
+//     } else {
+//         // Default fighter shape
+//         ctx.beginPath();
+//         ctx.moveTo(0, -10);
+//         ctx.lineTo(7, 10);
+//         ctx.lineTo(0, 7);
+//         ctx.lineTo(-7, 10);
+//         ctx.closePath();
+//         ctx.fill();
+//         ctx.stroke();
+//     }
+    
+//     // Draw engine effect if active
+//     if (shipState.controls?.engineOn) {
+//         const time = Date.now() * 0.01; // For flame animation
+//         const flicker = Math.sin(time) * 0.3 + 0.7; // Flicker effect between 0.4 and 1.0
+        
+//         // Main flame
+//         ctx.beginPath();
+//         ctx.strokeStyle = `rgba(255, 153, 0, ${flicker})`; // Orange with flicker
+//         ctx.fillStyle = `rgba(255, 200, 0, ${flicker * 0.8})`; // Lighter orange center
+        
+//         // Flame shape varies with time
+//         const flameLength = (Math.sin(time * 1.5) * 2 + 10) * flicker;
+//         const flameWidth = 4 * flicker;
+        
+//         // Draw flame path
+//         ctx.moveTo(0, 8);  // Start at ship base
+//         ctx.lineTo(flameWidth, 8 + flameLength * 0.3);  // Right edge
+//         ctx.lineTo(0, 8 + flameLength);  // Tip
+//         ctx.lineTo(-flameWidth, 8 + flameLength * 0.3);  // Left edge
+//         ctx.closePath();
+        
+//         ctx.fill();  // Fill with lighter orange
+//         ctx.stroke(); // Stroke with darker orange
+        
+//         // Inner flame glow
+//         ctx.beginPath();
+//         ctx.strokeStyle = `rgba(255, 255, 200, ${flicker * 0.8})`; // Bright yellow core
+//         ctx.moveTo(0, 8);
+//         ctx.lineTo(flameWidth * 0.5, 8 + flameLength * 0.4);
+//         ctx.lineTo(0, 8 + flameLength * 0.8);
+//         ctx.lineTo(-flameWidth * 0.5, 8 + flameLength * 0.4);
+//         ctx.closePath();
+//         ctx.stroke();
+        
+//         // Add particle effect for extra detail
+//         const particleCount = 3;
+//         ctx.fillStyle = `rgba(255, 200, 0, ${flicker * 0.5})`;
+//         for (let i = 0; i < particleCount; i++) {
+//             const particleOffset = Math.sin(time + i * Math.PI * 2 / particleCount) * 2;
+//             const particleY = 8 + flameLength * (0.5 + Math.random() * 0.5);
+//             ctx.beginPath();
+//             ctx.arc(particleOffset, particleY, 1, 0, Math.PI * 2);
+//             ctx.fill();
+//         }
+//     }
+    
+//     // Reset rotation for UI elements
+//     ctx.rotate(-shipState.angle);
+    
+//     // Draw callSign and health bar at 2 o'clock position
+//     if (shipState.callSign) {
+//         const distance = 35;
+//         const angle = -Math.PI/3;  // 2 o'clock position
+        
+//         const uiX = Math.cos(angle) * distance;
+//         const uiY = Math.sin(angle) * distance;
+        
+//         // Draw callSign with matching info panel style
+//         const isCritical = shipState.health < 25;
+        
+//         if (isCritical) {
+//             ctx.shadowColor = '#FF0000';
+//             ctx.fillStyle = '#FF0000';
+//         } else {
+//             ctx.shadowBlur = 0;
+//             ctx.fillStyle = '#FFFFFF';
+//         }
+        
+//         // Match info panel font and size
+//         ctx.font = 'bold 12px Courier New';  // Changed from 'bold 12px' to match info panel
+//         ctx.textAlign = 'left';
+//         ctx.textBaseline = 'bottom';
+//         ctx.lineWidth = 1;  // Reduced from 2 to match info panel style
+        
+//         // Add stroke for better visibility
+//         ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+//         ctx.strokeText(shipState.callSign, uiX, uiY);
+//         ctx.fillText(shipState.callSign, uiX, uiY);
+        
+//         // Reset shadow for health bar
+//         ctx.shadowBlur = 0;
+        
+//         // Draw health bar
+//         const healthBarWidth = 30;
+//         const healthBarHeight = 4;
+//         const healthBarY = uiY + 4;
+        
+//         // Health bar background
+//         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+//         ctx.fillRect(uiX, healthBarY, healthBarWidth, healthBarHeight);
+        
+//         // Health bar fill - red if critical
+//         const healthPercent = shipState.health / shipState.maxHealth;
+//         ctx.fillStyle = isCritical ? '#FF0000' : '#FFFFFF';
+//         ctx.fillRect(uiX, healthBarY, healthBarWidth * healthPercent, healthBarHeight);
+        
+//         // Add stroke around health bar
+//         ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+//         ctx.lineWidth = 1;
+//         ctx.strokeRect(uiX, healthBarY, healthBarWidth, healthBarHeight);
+//     }
+    
+//     ctx.restore();
+// };
+
+// Add function to draw home positions
+// const drawHome = (ctx, homePosition) => {
+//     // Convert world coordinates to screen coordinates
+//     const screenPos = worldToScreen(homePosition.x, homePosition.y, camera.value);
+    
+//     ctx.save();
+//     ctx.translate(screenPos.x, screenPos.y);
+    
+//     // Draw a box with border lines
+//     const boxSize = 20; // Size of the box
+//     ctx.strokeStyle = homePosition.color || '#FFFFFF'; // Use player color or default to white
+//     ctx.lineWidth = 2;
+    
+//     // Draw the box
+//     ctx.beginPath();
+//     ctx.rect(-boxSize/2, -boxSize/2, boxSize, boxSize);
+//     ctx.stroke();
+    
+//     ctx.restore();
+// };
+
+// Add these shape drawing functions
+// const drawStar = (ctx, cx, cy, spikes, outerRadius, innerRadius) => {
+//     let rot = Math.PI / 2 * 3;
+//     let x = cx;
+//     let y = cy;
+//     let step = Math.PI / spikes;
+
+//     ctx.beginPath();
+//     ctx.moveTo(cx, cy - outerRadius);
+    
+//     for(let i = 0; i < spikes; i++) {
+//         x = cx + Math.cos(rot) * outerRadius;
+//         y = cy + Math.sin(rot) * outerRadius;
+//         ctx.lineTo(x, y);
+//         rot += step;
+
+//         x = cx + Math.cos(rot) * innerRadius;
+//         y = cy + Math.sin(rot) * innerRadius;
+//         ctx.lineTo(x, y);
+//         rot += step;
+//     }
+    
+//     ctx.lineTo(cx, cy - outerRadius);
+//     ctx.closePath();
+//     ctx.fill();
+//     ctx.stroke();
+// };
+
+// const drawDroplet = (ctx, cx, cy, radius) => {
+//     ctx.beginPath();
+//     ctx.moveTo(cx, cy - radius);
+    
+//     // Draw teardrop shape
+//     ctx.bezierCurveTo(
+//         cx + radius, cy - radius,  // control point 1
+//         cx + radius, cy,           // control point 2
+//         cx, cy + radius           // end point
+//     );
+//     ctx.bezierCurveTo(
+//         cx - radius, cy,          // control point 1
+//         cx - radius, cy - radius, // control point 2
+//         cx, cy - radius          // end point
+//     );
+    
+//     ctx.fill();
+//     ctx.stroke();
+// };
+
+// const drawCrystal = (ctx, cx, cy, radius) => {
+//     ctx.beginPath();
+//     // Draw diamond/crystal shape
+//     ctx.moveTo(cx, cy - radius);    // top
+//     ctx.lineTo(cx + radius, cy);    // right
+//     ctx.lineTo(cx, cy + radius);    // bottom
+//     ctx.lineTo(cx - radius, cy);    // left
+//     ctx.closePath();
+//     ctx.fill();
+//     ctx.stroke();
+// };
+
+// Update the drawCollectible function
+// const drawCollectible = (ctx, collectible) => {
+//     const screenPos = worldToScreen(collectible.x, collectible.y, camera.value);
+    
+//     ctx.save();
+//     ctx.translate(screenPos.x, screenPos.y);
+    
+//     // Pulsing animation
+//     const time = Date.now() * 0.003;
+//     const pulse = Math.sin(time) * 0.2 + 0.8;  // Pulse between 0.6 and 1.0
+//     const size = collectible.radius * 0.5 * pulse;  // Base size * pulse
+    
+//     // Set color based on type but keep simple + shape
+//     ctx.strokeStyle = collectible.color;
+//     ctx.lineWidth = 2;
+    
+//     // Draw simple + shape
+//     ctx.beginPath();
+//     ctx.moveTo(-size, 0);
+//     ctx.lineTo(size, 0);
+//     ctx.moveTo(0, -size);
+//     ctx.lineTo(0, size);
+//     ctx.stroke();
+    
+//     ctx.restore();
+// };
+
+// Add function to draw safe zones
+// const drawSafeZone = (ctx, homePosition) => {
+//     // Convert world coordinates to screen coordinates
+//     const screenPos = worldToScreen(homePosition.x, homePosition.y, camera.value);
+    
+//     ctx.save();
+//     ctx.translate(screenPos.x, screenPos.y);
+    
+//     // Safe zone box reduced to 300 units
+//     const safeZoneSize = 300;
+//     ctx.strokeStyle = homePosition.color || '#FFFFFF';
+//     ctx.lineWidth = 1;
+//     ctx.setLineDash([5, 5]);
+    
+//     ctx.beginPath();
+//     ctx.rect(
+//         -safeZoneSize/2, 
+//         -safeZoneSize/2, 
+//         safeZoneSize, 
+//         safeZoneSize
+//     );
+//     ctx.stroke();
+    
+//     ctx.setLineDash([]);
+//     ctx.restore();
+// }
+
+// Add visualization for resource fields
+// const drawResourceField = (ctx, field) => {
+//     const screenPos = worldToScreen(field.x, field.y, camera.value);
+    
+//     ctx.save();
+//     ctx.translate(screenPos.x, screenPos.y);
+    
+//     // Draw faint circle to show field area
+//     ctx.strokeStyle = field.type.color;
+//     ctx.globalAlpha = 0.2;
+//     ctx.beginPath();
+//     ctx.arc(0, 0, field.radius, 0, Math.PI * 2);
+//     ctx.stroke();
+    
+//     ctx.restore();
+// };
+
+// Update the bullet drawing function
+// const drawBullet = (ctx, bullet) => {
+//     if (!bullet || typeof bullet.x !== 'number' || typeof bullet.y !== 'number') {
+//         console.warn('Invalid bullet data:', bullet);
+//         return;
+//     }
+
+//     const screenPos = worldToScreen(bullet.x, bullet.y, camera.value);
+    
+//     ctx.save();
+//     ctx.translate(screenPos.x, screenPos.y);
+    
+//     // Make bullets more visible
+//     ctx.fillStyle = bullet.color || '#FFFFFF';
+//     ctx.beginPath();
+//     ctx.arc(0, 0, 3, 0, Math.PI * 2); // Slightly larger radius
+//     ctx.fill();
+    
+//     ctx.restore();
+// };
+
+// Update handleKeyDown to include space for shooting
+// function handleKeyDown(event) {
+//     console.log('Key down event:', event.key); // Debug log
+//     switch(event.key) {
+//         case 'ArrowLeft':
+//             sendInput('rotate_left', true);
+//             break;
+//         case 'ArrowRight':
+//             sendInput('rotate_right', true);
+//             break;
+//         case 'ArrowUp':
+//             sendInput('thrust', true);
+//             soundManager.play('engine'); // Add engine sound
+//             break;
+//         case ' ': // Space key
+//             console.log('Space key pressed - sending shoot input'); // Debug log
+//             // Only send the input, don't call shoot directly
+//             sendInput('shoot', true);
+//             break;
+//         case 'h':
+//         case 'H':
+//             sendInput('warp_home', true);
+//             break;
+//         case 'T': // Test sounds
+//             // Handled in the event listener above
+//             break;
+//     }
+// }
+
+// function handleKeyUp(event) {
+//     switch(event.key) {
+//         case 'ArrowLeft':
+//             sendInput('rotate_left', false);
+//             break;
+//         case 'ArrowRight':
+//             sendInput('rotate_right', false);
+//             break;
+//         case 'ArrowUp':
+//             sendInput('thrust', false);
+//             soundManager.stopEngine(); // Stop engine sound
+//             break;
+//         case ' ': // Add space key up handler
+//             sendInput('shoot', false);
+//             break;
+//     }
+// }
+
+// Update the gameLoop
+const gameLoop = () => {
+    if (!isRunning.value) return;
+    
+    // Update camera position to follow player's ship
+    if (ship.value) {
+        const targetX = ship.value.x;
+        const targetY = ship.value.y;
+        camera.value.x += (targetX - camera.value.x) * 0.1;
+        camera.value.y += (targetY - camera.value.y) * 0.1;
+    }
+    
+    // Clear and draw starfield
+    drawStarfield(canvasManager.value.ctx, camera.value);
+    
+    // Draw home positions first (so they appear behind ships)
+    if (gameState.value.homePositions) {
+        for (const homePosition of Object.values(gameState.value.homePositions)) {
+            drawSafeZone(canvasManager.value.ctx, homePosition, worldToScreen, camera.value);
+            drawHome(canvasManager.value.ctx, homePosition, worldToScreen, camera.value);
+        }
+    }
+
+    // Draw resource fields
+    if (gameState.value.resourceFields) {
+        for (const field of Object.values(gameState.value.resourceFields)) {
+            drawResourceField(canvasManager.value.ctx, field, worldToScreen, camera.value);
+        }
+    }
+    
+    // Draw collectibles
+    if (gameState.value.collectibles) {
+        for (const collectible of Object.values(gameState.value.collectibles)) {
+            drawCollectible(canvasManager.value.ctx, collectible, worldToScreen, camera.value);
+        }
+    }
+
+    // Debug log bullets before rendering
+    console.log('Current game state bullets:', gameState.value.bullets);
+
+    // Draw bullets with debug logging
+    if (gameState.value?.bullets) {
+        console.log('Drawing bullets:', gameState.value.bullets);
+        gameState.value.bullets.forEach(bullet => {
+            drawBullet(canvasManager.value.ctx, bullet, worldToScreen, camera.value);
+        });
+    }
+    
+    // Debug log the game state
+    console.log('Current game state:', gameState.value);
+    
+    // Draw all players from game state
+    for (const [id, playerState] of Object.entries(gameState.value.players)) {
+        // Initialize previous position if not exists
+        if (!prevPositions.value.has(id)) {
+            prevPositions.value.set(id, {
+                x: playerState.position.x,
+                y: playerState.position.y
+            });
+        }
+
+        const prevPos = prevPositions.value.get(id);
+        
+        // Interpolate position
+        const lerpPos = {
+            x: prevPos.x + (playerState.position.x - prevPos.x) * GAME_CONFIG.LERP_FACTOR,
+            y: prevPos.y + (playerState.position.y - prevPos.y) * GAME_CONFIG.LERP_FACTOR
+        };
+
+        // Draw with interpolated position
+        drawShip(canvasManager.value.ctx, {
+            ...playerState,
+            position: lerpPos
+        }, worldToScreen, camera.value);
+
+        // Store interpolated position for next frame
+        prevPositions.value.set(id, lerpPos);
+        
+        // Update info panel for our ship
+        if (socket.value && id === socket.value.id && ship.value) {
+            ship.value.x = playerState.position.x;
+            ship.value.y = playerState.position.y;
+            ship.value.angle = playerState.angle;
+            ship.value.velocity = playerState.velocity;
+            
+            shipInfo.value = {
+                callSign: playerState.callSign,
+                health: playerState.health,
+                maxHealth: playerState.maxHealth,
+                position: { 
+                    x: Math.round(playerState.position.x), 
+                    y: Math.round(playerState.position.y) 
+                },
+                home: playerState.home,
+                angle: Math.round((playerState.angle * 180 / Math.PI) % 360),
+                velocity: { 
+                    x: playerState.velocity.x.toFixed(2), 
+                    y: playerState.velocity.y.toFixed(2) 
+                },
+                controls: playerState.controls,
+                color: playerState.color,
+                pattern: playerState.pattern,
+                score: playerState.score,
+                collections: playerState.collections,
+                streak: playerState.streak
+            };
+
+            score.value = playerState.score || 0;
+            console.log('Score updated to:', score.value);
+            
+            // Update safe zone status
+            inSafeZone.value = isInSafeZone(
+                playerState.position.x, 
+                playerState.position.y,
+                socket.value.id
+            );
+            
+            score.value = playerState.score || 0;
+        }
+    }
+    
+    // Draw score popups
+    scorePopups.value.forEach(popup => {
+        const screenPos = worldToScreen(popup.x, popup.y, camera.value);
+        
+        canvasManager.value.ctx.save();
+        canvasManager.value.ctx.fillStyle = `rgba(255, 255, 0, ${popup.opacity})`;
+        canvasManager.value.ctx.font = 'bold 16px Arial';
+        canvasManager.value.ctx.textAlign = 'center';
+        canvasManager.value.ctx.fillText(`+${popup.amount}`, screenPos.x, screenPos.y - 20);
+        canvasManager.value.ctx.restore();
+        
+        // Animate popup
+        popup.y -= 1;
+        popup.opacity -= 0.02;
+    });
+
+    requestAnimationFrame(gameLoop);
+};
+
+// Define the handler at component scope
+// const handleCollectible = (event) => {
+//     soundManager.play('collect');
+//     score.value += event.detail.points;
+//     console.log('Score updated:', score.value);
+// };
+
+// Add this function before the onMounted section
+// const fetchSSOTData = async (playerName) => {
+//     try {
+//         // Get the current hostname and port dynamically
+//         const protocol = window.location.protocol;
+//         const hostname = window.location.hostname;
+//         const port = window.location.port;
+//         const baseUrl = `${protocol}//${hostname}${port ? ':' + port : ''}`;
+        
+//         const response = await fetch(`${baseUrl}/master/players/state/${playerName}`);
+//         const data = await response.json();
+        
+//         // Change page title to show data was received
+//         document.title = `SSOT: ${data.resources?.gold || 0}g ${data.resources?.water || 0}w ${data.resources?.kryptonite || 0}k`;
+        
+//         if (data.resources) {
+//             // Wait a bit for shipInfo to be initialized, then update
+//             setTimeout(() => {
+//                 if (shipInfo.value) {
+//                     shipInfo.value.collections = data.resources;
+//                     shipInfo.value.score = data.score;
+//                     // Change title to show update was applied
+//                     document.title = `UPDATED: ${data.resources.gold}g ${data.resources.water}w ${data.resources.kryptonite}k`;
+//                 } else {
+//                     // Retry after another delay
+//                     setTimeout(() => {
+//                         if (shipInfo.value) {
+//                             shipInfo.value.collections = data.resources;
+//                             shipInfo.value.score = data.score;
+//                             document.title = `RETRY: ${data.resources.gold}g ${data.resources.water}w ${data.resources.kryptonite}k`;
+//                         }
+//                     }, 2000);
+//                 }
+//             }, 1000);
+//         }
+//     } catch (error) {
+//         document.title = 'SSOT ERROR';
+//     }
+// };
+
+// Add initial state setup in onMounted
+onMounted(() => {
+    console.log('🎮 Game Component: Mounted');
+            soundManager.play('shoot');
+/*
+
+    if (initCanvas()) {
+        console.log('🎮 Canvas initialized');
+        isRunning.value = true;
+
+        // Fetch SSOT data directly from Master Server
+        if (props.self && props.self !== 'nope') {
+            fetchSSOTData(props.self, shipInfo);
+        }
+
+        // ORIGINAL SOUND SYSTEM (put this back):
+        // Bullet sound
+        window.addEventListener('bullet-created', () => {
+            soundManager.play('shoot');
+        });
+
+        // Collectible sound and scoring
+        window.addEventListener('item-collected', handleCollectible);
+
+        // Ship hit sound
+        window.addEventListener('ship-hit', () => {
+            soundManager.play('hit');
+        });
+
+        // Ship destroyed sound
+        window.addEventListener('ship-destroyed', () => {
+            soundManager.play('explosion');
+        });
+
+        // Level complete sound
+        window.addEventListener('level-complete', () => {
+            soundManager.play('levelComplete');
+        });
+
+        gameLoop();
+        if (props.multiplayer) {
+            console.log('🎮 Connecting to multiplayer...');
+            connect();
+        }
+
+        // Get input functions AFTER socket is available
+        const { handleKeyDown, handleKeyUp, handleTestSounds, initSound } = useGameInput(sendInput);
+        
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+
+        // Add shoot blocked handler
+        socket.value.on('shoot_blocked', (data) => {
+            if (data.reason === 'in_safe_zone') {
+                console.log('Cannot shoot in safe zones!');
+            }
+        });
+
+        // Add collision sound
+        socket.value.on('collision', () => {
+            soundManager.play('hit');
+        });
+
+        // Add explosion sound
+        socket.value.on('ship_destroyed', () => {
+            soundManager.play('explosion');
+        });
+
+        // Add collect sound
+        socket.value.on('collectible_collected', (data) => {
+            soundManager.play('collect');
+            
+            if (shipInfo.value) {
+                shipInfo.value.collections = data.collections;
+            }
+            
+            console.log('Collections updated:', data.collections);
+
+            if (data.hasStreak) {
+                const playerState = gameState.value.players[socket.value.id];
+                if (playerState && playerState.position) {
+                    createScorePopup(
+                        playerState.position.x,
+                        playerState.position.y,
+                        10,
+                        scorePopups.value
+                    );
+                }
+            }
+        });
+
+        // Add level complete sound
+        socket.value.on('level_complete', () => {
+            soundManager.play('levelComplete');
+        });
+
+        // Add test key for sound debugging
+        window.addEventListener('keydown', handleTestSounds);
+
+        // Initialize sound system on first click using the composable function
+        initSound(canvas.value);
+
+        // Setup window event handlers
+        setupWindowEventHandlers({
+            soundManager,
+            handleCollectible,
+            score
+        });
+
+        // In SsiGameNew.vue, update the displayHelp function
+        function displayHelp(data) {
+            helpContent.value = data.formatted;
+            showHelpOverlay.value = true;
+        }
+
+        // Create computed properties using the composable functions
+        const gameServerInfo = computed(() => createGameServerInfo(socket, props, gameState));
+
+        // Update the chat message handler to include game server info
+        const handleChatMessage = (data) => {
+            const helpResult = parseHelpCommand(data.content, gameServerInfo.value);
+            if (helpResult) {
+                console.log(`Help command received: ${helpResult.category}`);
+                socket.value.emit('help', {
+                    category: helpResult.category,
+                    content: helpResult.formatted
+                });
+                return;
+            }
+
+            socket.value.emit('chat_message', data);
+        };
+    }
+    */
+});
+
+onUnmounted(() => {
+    console.log(' Game Component: Unmounting');
+    isRunning.value = false;
+    
+    cleanupEventHandlers({
+        soundManager,
+        handleCollectible,
+        score
+    });
+});
+
+// Create computed properties using the composable functions
+const infoItems = computed(() => createInfoItems(shipInfo, inSafeZone, padString, formatNumber));
+
+const filteredContent = computed(() => createFilteredContent(helpContent, selectedHelpSection));
+
+// In SsiGameNew.vue, add with other refs
+const showHelpOverlay = ref(false);
+const helpContent = ref('');
+const selectedHelpSection = ref('world');  // Default section
+const helpSections = {
+    world: '🌌 World Information',
+    ships: '🚀 Ship Types & Movement',
+    collectibles: '💎 Collectibles & Scoring',
+    controls: '🎮 Controls',
+    commands: '�� Chat Commands'
+};
+
+const scorePopups = ref([]);
+
+// function createScorePopup(x, y, amount) {
+//     const popup = {
+//         x: x,
+//         y: y,
+//         amount: amount,
+//         opacity: 1,
+//         id: Date.now()
+//     };
+//     scorePopups.value.push(popup);
+    
+//     // Remove popup after animation
+//     setTimeout(() => {
+//         scorePopups.value = scorePopups.value.filter(p => p.id !== popup.id);
+//     }, 1000);
+// }
+</script>
+
+<template>
+    <div class="game-container" 
+         :style="{
+             width: `${GAME_CONFIG.CANVAS_WIDTH}px`,
+             height: `${GAME_CONFIG.CANVAS_HEIGHT}px`
+         }">
+        <canvas ref="canvas" class="game-canvas"></canvas>
+        
+        <!-- Info Panel -->
+        <GameInfoPanel 
+            v-if="shipInfo"
+            :ship-info="shipInfo"
+            :score="score"
+            :in-safe-zone="inSafeZone"
+        />
+
+        <!-- Minimap Component -->
+        <GameMiniMap 
+            :game-state="gameState"
+            :player-id="socket?.id"
+            :size="150"
+            :world-width="GAME_CONFIG.WORLD_WIDTH"
+            :world-height="GAME_CONFIG.WORLD_HEIGHT"
+        />
+
+        <!-- Add Resource Panel -->
+        <ResourcePanel 
+            :collections="shipInfo?.collections"
+            :streak="shipInfo?.streak"
+        />
+
+        <!-- Chat Component -->
+        <Chat 
+            v-if="socket && shipInfo"
+            :socket="socket"
+            :playerInfo="{
+                callSign: shipInfo.callSign,
+                color: shipInfo.color
+            }"
+        />
+
+        <!-- Help Overlay -->
+        <HelpOverlay 
+            :show="showHelpOverlay"
+            :content="helpContent"
+            @close="showHelpOverlay = false"
+        />
+    </div>
+</template>
+
+<style scoped>
+.game-container {
+    position: relative;
+}
+
+.game-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.help-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.help-content {
+    background: rgba(0, 20, 40, 0.95);
+    border: 1px solid #30a0ff;
+    border-radius: 8px;
+    padding: 20px;
+    width: 800px;  /* Fixed width */
+    height: 500px; /* Fixed height */
+    overflow: hidden; /* Prevent jumping */
+}
+
+.help-columns {
+    display: flex;
+    gap: 20px;
+    height: calc(100% - 40px); /* Account for header */
+}
+
+.index-column {
+    flex: 0 0 180px; /* Fixed width for index */
+    border-right: 1px solid rgba(48, 160, 255, 0.3);
+    padding-right: 15px;
+    overflow-y: auto;
+}
+
+.content-column {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.index-item {
+    padding: 6px 10px;
+    color: #fff;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-family: Arial, sans-serif;  /* Clean, readable font */
+}
+
+.index-item:hover {
+    background: rgba(48, 160, 255, 0.2);
+}
+
+.index-item.active {
+    background: rgba(48, 160, 255, 0.3);
+    border-left: 3px solid #30a0ff;
+}
+
+.content-column pre {
+    color: white;
+    font-size: 12px;
+    line-height: 1.4;
+
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.help-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #30a0ff;
+}
+
+.help-header h2 {
+    font-size: 16px;
+    color: #30a0ff;
+    margin: 0;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 8px;
+}
+</style> 

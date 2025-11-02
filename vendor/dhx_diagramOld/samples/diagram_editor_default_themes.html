@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- meta block -->
+		<title>Diagram Editor. Default mode. Basic and custom themes - DHTMLX Diagram</title>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" charset="utf-8">
+		
+		<link rel="shortcut icon" href="./common/favicon/favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="./common/favicon/icon-16.png" sizes="16x16" />
+		<link rel="icon" href="./common/favicon/icon-32.png" sizes="32x32" />
+		<link rel="icon" href="./common/favicon/icon-48.png" sizes="48x48" />
+		<link rel="icon" href="./common/favicon/icon-96.png" sizes="96x96" />
+		<link rel="icon" href="./common/favicon/icon-144.png" sizes="144x144" />
+		<!-- end meta block -->
+		<link rel="stylesheet" href="./common/index.css?v=6.0.10">
+		<link rel="stylesheet" href="../codebase/diagramWithEditor.css?v=6.0.10">
+		<script type="text/javascript" src="../codebase/diagramWithEditor.js?v=6.0.10"></script>
+		<script type="text/javascript" src="./common/data.js?v=6.0.10"></script>
+		<!-- custom sample head -->
+		<style>
+			.dhx_sample-widget {
+				height: calc(100% - 121px);
+			}
+
+			/* start custom themes */
+			[data-dhx-theme='custom-light'] {
+				/* font */
+				--dhx-font-color-primary: #212529;
+				--dhx-font-color-secondary: #95a5a5;
+				/* end font */
+
+				/* border */
+				--dhx-border-color: #ced4da;
+				/* end border */
+
+				/* color schema */
+				--dhx-h-primary: 210;
+				--dhx-s-primary: 30%;
+				--dhx-l-primary: 20%;
+
+				--dhx-h-secondary: 185;
+				--dhx-s-secondary: 5%;
+				--dhx-l-secondary: 50%;
+
+				--dhx-h-danger: 6;
+				--dhx-s-danger: 78%;
+				--dhx-l-danger: 57%;
+
+				--dhx-l-background: 98%;
+				/* end color schema */
+
+				--dhx-shapebar-item-font-color: var(--dhx-font-color-primary);
+				--dhx-shapebar-item-background: #95a5a5;
+				--dhx-shapebar-item-border-color: #ced4da;
+			}
+
+			[data-dhx-theme='custom-dark'] {
+				/* font */
+				--dhx-font-color-primary: var(--dhx-color-gray-200);
+				--dhx-font-color-secondary: var(--dhx-color-gray-500);
+				--dhx-font-color-additional: var(--dhx-color-gray-500);
+				--dhx-font-color-disabled: var(--dhx-color-gray-800);
+				--dhx-font-color-contrast: var(--dhx-color-black);
+				/* end font */
+
+				/* border */
+				--dhx-border-color: #007a99;
+				/* end border */
+
+				/* color schema */
+				--dhx-h-primary: 45;
+				--dhx-s-primary: 100%;
+				--dhx-l-primary: 35%;
+
+				--dhx-h-secondary: 185;
+				--dhx-s-secondary: 5%;
+				--dhx-l-secondary: 50%;
+
+				--dhx-h-danger: 330;
+				--dhx-s-danger: 65%;
+				--dhx-l-danger: 50%;
+
+				--dhx-h-background: 190;
+				--dhx-s-background: 100%;
+				--dhx-l-background: 10%;
+				/* end color schema */
+
+				/* theme colors */
+				--dhx-background-primary: hsl(var(--dhx-h-background), var(--dhx-s-background), var(--dhx-l-background));
+				--dhx-background-secondary: hsl(var(--dhx-h-background), var(--dhx-s-background), calc(var(--dhx-l-background) + 8%));
+				--dhx-background-additional: hsl(var(--dhx-h-background), var(--dhx-s-background), calc(var(--dhx-l-background) + 12%));
+				/* end theme colors */
+
+				--dhx-shapebar-item-font-color: var(--dhx-font-color-primary);
+				--dhx-shapebar-item-background: #00242b;
+				--dhx-shapebar-item-border-color: #00a5c6;
+			}
+			/* end custom themes */
+			.dhx_diagram_template_d {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				width: 100%;
+				height: 100%;
+				border: var(--dhx-border);
+				overflow: hidden;
+
+				font-family: var(--dhx-font-family);
+				font-size: var(--dhx-font-size-normal);
+				font-weight: var(--dhx-font-weight-regular);
+				line-height: var(--dhx-line-height-normal);
+				color: var(--dhx-font-color-primary);
+				background-color: var(--dhx-shapebar-item-background);
+			}
+			.dhx_diagram_template_d__image {
+				width: 64px;
+				height: 64px;
+				pointer-events: none;
+				border-radius: 50%;
+				margin-bottom: 16px;
+			}
+			.dhx_diagram_template_d__title {
+				font-weight: var(--dhx-font-weight-medium);
+				width: 100%;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				text-align: center;
+			}
+			.dhx_diagram_template_d__text {
+				padding: 4px;
+			}
+		</style>
+	</head>
+	<body>
+		<header class="dhx_sample-header">
+			<div class="dhx_sample-header__main">
+				<nav class="dhx_sample-header__breadcrumbs">
+					<ul class="dhx_sample-header-breadcrumbs">
+						<li class="dhx_sample-header-breadcrumbs__item">
+							<a href="./index.html" class="dhx_sample-header-breadcrumbs__link">Back to Diagram samples</a>
+						</li>
+					</ul>
+				</nav>
+				<h1 class="dhx_sample-header__title">
+					<div class="dhx_sample-header__content">
+						Diagram Editor. Default mode. Basic and custom themes
+					</div>
+				</h1>
+			</div>
+		</header>
+		<form id="dhxTheme" class="dhx_sample-controls">
+			<label class="dhx_form-group dhx_radiobutton dhx_form-group--inline dhx_form-group--no-message-holder dhx_sample-input__wrapper--pl-16">
+				<input checked type="radio" name="theme" id="light" class="dhx_radiobutton__input">
+				<span class="dhx_radiobutton__visual-input"></span>
+				<span class="dhx_label">Light</span>
+			</label>
+			<label class="dhx_form-group dhx_radiobutton dhx_form-group--inline dhx_form-group--no-message-holder dhx_sample-input__wrapper--pl-16">
+				<input type="radio" name="theme" id="dark" class="dhx_radiobutton__input">
+				<span class="dhx_radiobutton__visual-input"></span>
+				<span class="dhx_label">Dark</span>
+			</label>
+			<label class="dhx_form-group dhx_radiobutton dhx_form-group--inline dhx_form-group--no-message-holder dhx_sample-input__wrapper--pl-16">
+				<input type="radio" name="theme" id="custom-light" class="dhx_radiobutton__input">
+				<span class="dhx_radiobutton__visual-input"></span>
+				<span class="dhx_label">Custom Light</span>
+			</label>
+			<label class="dhx_form-group dhx_radiobutton dhx_form-group--inline dhx_form-group--no-message-holder dhx_sample-input__wrapper--pl-16">
+				<input type="radio" name="theme" id="custom-dark" class="dhx_radiobutton__input">
+				<span class="dhx_radiobutton__visual-input"></span>
+				<span class="dhx_label">Custom Dark</span>
+			</label>
+		</form>
+		<div class="dhx_sample-widget" id="editor"></div>
+		<script>
+			const editor = new dhx.DiagramEditor("editor", {
+				type: "default",
+				lineConfig: { lineGap: 20 },
+				view: {
+					shapebar: {
+						sections: {
+							"Network shapes": [
+								{ type: "network", text: "Core", img: "./common/img/network/core.svg" },
+								{ type: "network", text: "Server", img: "./common/img/network/server.svg" },
+								{ type: "network", text: "Cloud", img: "./common/img/network/cloud.svg" },
+								{ type: "network", text: "File worker", img: "./common/img/network/fieldWorker.svg" },
+								{ type: "network", text: "Desktop", img: "./common/img/network/desktop.svg" },
+							],
+							"Flow shapes": [{ flowShapes: true }],
+						}
+					},
+					editbar: {
+						properties: {
+							network: [
+							{ type: "arrange" },
+								{
+									type: "fieldset",
+									label: "Network information",
+									rows: [
+										{ type: "avatar", key: "img", circle: true, readOnly: true },
+										{ type: "textarea", key: "text", label: "Description" },
+										{ type: "input", key: "ip", label: "IP" },
+									]
+								}
+							]
+						}
+					}
+				}
+			});
+			editor.diagram.addShape("network", {
+				template: ({ img, text, ip }) => {
+					return `
+						<section class="dhx_diagram_template_d">
+							<img class="dhx_diagram_template_d__image" src="${img}" alt="${text}"></img>
+							<span class="dhx_diagram_template_d__title">${text}</span>
+							<span class="dhx_diagram_template_d__text">${ip}</span>
+						</section>
+					`;
+				},
+				defaults: {
+					width: 160,	height: 160,
+					preview: { scale: 0.7 },
+					ip: "127.0.0.1",
+				}
+			});
+			editor.parse(networkData);
+
+			document.querySelector("#dhxTheme").addEventListener("change", function (e) {
+				const node = document.getElementById("editor").childNodes[0];
+				dhx.setTheme(e.target.id, node);
+			});
+		</script>
+	</body>
+</html>

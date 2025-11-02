@@ -1,0 +1,53 @@
+{
+  "name": "panadero-solarsysinvaders",
+  "version": "0.1.2",
+  "type": "module",
+  "description": "SolarSys Invaders - A space-themed NFT game by Panadero Services",
+  "main": "dist/panadero-solarsysinvaders.umd.js",
+  "module": "dist/panadero-solarsysinvaders.es.js",
+  "files": [
+    "dist",
+    "src",
+    "client",
+    "server",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest",
+    "server": "node server/socket-server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.0",
+    "node-fetch": "^3.3.2",
+    "socket.io": "^4.7.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Panadero-Services/panadero-solarsysinvaders.git"
+  },
+  "keywords": [
+    "game",
+    "nft",
+    "blockchain",
+    "vue",
+    "web3",
+    "space"
+  ],
+  "author": "Panadero Services",
+  "license": "MIT",
+  "peerDependencies": {
+    "@metamask/detect-provider": "^2.0.0",
+    "ethers": "^6.6.4",
+    "vue": "^3.3.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/test-utils": "^2.0.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}
