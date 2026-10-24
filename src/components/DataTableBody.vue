@@ -5,6 +5,10 @@
   @description Table body component for DataTable with data rows and bulk actions
 -->
 <script setup>
+import { computed } from 'vue'
+import { useDataTablePermissions } from '../composables/useDataTablePermissions.js'
+import { DEFAULT_TABLE_LABELS } from '../config/tableLabels.js'
+
 // Props
 const props = defineProps({
   config: { type: Object, required: true },
@@ -16,11 +20,16 @@ const props = defineProps({
   error: { type: String, default: null },
   paginatedData: { type: Array, default: () => [] },
   selectedItems: { type: Array, default: () => [] },
-  getNestedValue: { type: Function, required: true }
+  getNestedValue: { type: Function, required: true },
+  cellStateClasses: { type: Object, default: () => ({}) }
 })
 
 // Emits
 const emit = defineEmits(['selectAll', 'toggleSelection', 'edit', 'delete', 'bulkDelete'])
+
+const { canBulkDelete, canEditRow, canDeleteRow } = useDataTablePermissions(props.config)
+const bulkEnabled = computed(() => props.showBulkActions && canBulkDelete.value)
+const labels = computed(() => ({ ...DEFAULT_TABLE_LABELS, ...(props.config.labels || {}) }))
 
 // Event handlers
 const handleSelectAll = () => {
@@ -46,6 +55,8 @@ const handleBulkDelete = () => {
 const isSelected = (itemId) => {
   return props.selectedItems.includes(itemId)
 }
+
+const cellStateClass = (item, column) => (column.stateKey ? props.cellStateClasses[item[column.stateKey]] || '' : '')
 
 
 
@@ -77,7 +88,7 @@ const isSelected = (itemId) => {
     <!-- Data Table -->
     <div v-else>
       <!-- Bulk Actions Bar -->
-      <div v-if="showBulkActions && selectedItems.length > 0" 
+      <div v-if="bulkEnabled && selectedItems.length > 0" 
            class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
         <div class="flex items-center justify-between">
           <span :class="DESIGN_SYSTEM.text.primary" class="font-medium">
@@ -106,11 +117,12 @@ const isSelected = (itemId) => {
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead :class="DESIGN_SYSTEM.table.header">
             <tr>
-              <th v-if="showBulkActions" class="px-6 py-3 text-left font-medium uppercase tracking-wider">
+              <th v-if="bulkEnabled" class="px-6 py-3 text-left font-medium uppercase tracking-wider">
                 <input
                   type="checkbox"
                   :checked="selectedItems.length === paginatedData.length && paginatedData.length > 0"
                   @change="handleSelectAll"
+                  :aria-label="labels.selectAll"
                   class="rounded border-gray-300" 
                 />
               </th>
@@ -122,37 +134,40 @@ const isSelected = (itemId) => {
               <th 
                 :style="scalingStyles.textFontSize"
                 :class="[DESIGN_SYSTEM.table.header, 'px-6 py-3 text-left font-medium uppercase tracking-wider']">
-                Actions
+                {{ labels.actions }}
               </th>
             </tr>
           </thead>
           <tbody :class="[DESIGN_SYSTEM.table.border, 'divide-y divide-gray-200 dark:divide-gray-700']">
             <tr v-for="item in paginatedData" :key="item.id" 
                 :class="[DESIGN_SYSTEM.table.row, 'hover:bg-gray-50 dark:hover:bg-gray-700']">
-              <td v-if="showBulkActions" class="px-6 py-4 whitespace-nowrap">
+              <td v-if="bulkEnabled" class="px-6 py-4 whitespace-nowrap">
                 <input
                   type="checkbox"
                   :checked="isSelected(item.id)"
                   @change="handleToggleSelection(item.id)"
+                  :aria-label="labels.selectRow"
                   class="rounded border-gray-300" 
                 />
               </td>
               <td v-for="column in config.columns" :key="column.key" 
                 :style="scalingStyles.smallFontSize"
-                :class="[DESIGN_SYSTEM.text.primary, 'px-6 py-4 whitespace-nowrap']">
+                :class="[cellStateClass(item, column) || DESIGN_SYSTEM.text.primary, 'px-6 py-4 whitespace-nowrap']">
                 {{ getNestedValue(item, column.key) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap font-medium">
                 <div class="flex gap-2">
-                  <button @click="handleEdit(item)" 
+                  <button v-if="canEditRow(item)" @click="handleEdit(item)" 
+                    :aria-label="labels.edit" :title="labels.edit"
                     :style="scalingStyles.iconSizeSmall"
                     :class="[DESIGN_SYSTEM.icon.primary, 'p-0 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900']">
-                    <i class="fas fa-edit"></i>
+                    <i class="fas fa-edit" aria-hidden="true"></i>
                   </button>
-                  <button @click="handleDelete(item)" 
+                  <button v-if="canDeleteRow(item)" @click="handleDelete(item)" 
+                    :aria-label="labels.delete" :title="labels.delete"
                     :style="scalingStyles.iconSizeSmall"
                     :class="[DESIGN_SYSTEM.icon.danger, 'p-0 rounded-lg hover:bg-red-100 dark:hover:bg-red-900']">
-                    <i class="fas fa-trash"></i>
+                    <i class="fas fa-trash" aria-hidden="true"></i>
                   </button>
                 </div>
               </td>

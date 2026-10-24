@@ -104,13 +104,14 @@ const resolvedFormComponent = computed(() => {
     @cancel="handleCancelBulkDelete"
   />
 
-  <!-- Generic Form Modal (if config provides form component) -->
+  <!-- Mount the form only when open so setup hydrates from the current row (no empty edit). -->
   <component
-    v-if="config.formComponent"
+    v-if="config.formComponent && showForm"
     :is="resolvedFormComponent"
-    :show="showForm"
+    :key="editingItem?.id ?? 'create'"
+    :show="true"
     :item="editingItem"
-        :DESIGN_SYSTEM="DESIGN_SYSTEM"
+    :DESIGN_SYSTEM="DESIGN_SYSTEM"
     v-bind="getFormProps()"
     @saved="handleItemSave"
     @close="handleFormClose"

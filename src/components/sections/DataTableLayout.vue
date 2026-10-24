@@ -1,5 +1,6 @@
 <script setup>
 import Navigation from './DataTableNavigation.vue';
+import { LAYOUT_FEATURE } from 'panadero-shared-styling';
 
 const props = defineProps({
   activeTab: { type: String, required: true },
@@ -10,17 +11,22 @@ const emit = defineEmits(['tab-change']);
 </script>
 
 <template>
-  <div class="layout-page dark:bg-gray-900">
-    <!-- Navigation Component -->
-    <Navigation 
-      :active-tab="activeTab" 
-      :tabs="tabs" 
-      @tab-change="emit('tab-change', $event)" 
-    />
+  <div :class="LAYOUT_FEATURE.container">
+    <!-- Navigation Component + optional append slot -->
+    <div :class="LAYOUT_FEATURE.navRow">
+      <div class="flex-1 min-w-0">
+      <Navigation 
+        :active-tab="activeTab" 
+        :tabs="tabs" 
+        @tab-change="emit('tab-change', $event)" 
+      />
+      </div>
+      <slot name="nav-append" />
+    </div>
 
     <!-- Main Content Layout -->
-    <div class="grid grid-cols-12 gap-6 mt-1">
-      <main class="col-span-12 lg:col-span-12">
+    <div :class="LAYOUT_FEATURE.contentGrid">
+      <main :class="LAYOUT_FEATURE.mainCol">
         <section>
           <div class="overflow-x-auto">
             <slot />
@@ -28,6 +34,9 @@ const emit = defineEmits(['tab-change']);
         </section>
       </main>
     </div>
+
+    <!-- Optional footer slot -->
+    <slot name="footer" />
   </div>
 </template>
 

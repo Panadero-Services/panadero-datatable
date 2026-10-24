@@ -72,7 +72,24 @@ const customProductConfig = createTableConfig({
   showCreate: true,
   showEdit: true,
   showDelete: true,
-  showBulkActions: true
+  showBulkActions: true,
+  
+  // Custom headers for API requests
+  headerPatterns: [
+    {
+      endpoint: '/erp_products',
+      headers: { 'X-From-Products-Page': 'true' }
+    },
+    {
+      endpoint: '/erp_storages', 
+      headers: { 'X-From-Storages-Page': 'true' }
+    }
+  ],
+  
+  // Static headers (always applied)
+  apiHeaders: {
+    'X-Custom-Header': 'value'
+  }
 })
 
 // Example 3: Compact configuration for quick reference
@@ -110,17 +127,17 @@ const ProductTableComponent = {
     const tableConfig = customProductConfig
     
     const handleCreate = () => {
-      console.log('Create new product')
+      console.debug('Create new product')
       // Implement create logic
     }
     
     const handleEdit = (product) => {
-      console.log('Edit product:', product)
+      console.debug('Edit product:', product)
       // Implement edit logic
     }
     
     const handleDelete = (productId) => {
-      console.log('Delete product:', productId)
+      console.debug('Delete product:', productId)
       // Implement delete logic
     }
     

@@ -76,7 +76,7 @@
                         loading.value = true;
                         const response = await axios.get('/products');
                         products.value = response.data;
-                        console.log('Loaded products:', products.value.length);
+                        console.debug('Loaded products:', products.value.length);
                     } catch (err) {
                         error.value = err.message;
                         console.error('Failed to load products:', err);

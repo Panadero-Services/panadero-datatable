@@ -15,9 +15,6 @@ import DataTableDemo from './DataTableDemo.vue'
 import FeaturesTable from './pages/FeaturesTable.vue';
 ///import FuturesTable from './pages/DataTableFutures.vue';
 
-// Import the Framework Settings Panel from shared location
-import { FrameworkSettingsPanel } from 'panadero-shared-components';
-
 import { useDataTableStore } from './composables/dataTableStore';
 const datatableStore = useDataTableStore();
 
@@ -85,9 +82,6 @@ onMounted(() => {
       @tab-change="activeTab = $event" 
     />
   </Layout>
-
-  <!-- Framework Settings Panel (no circular reference) -->
-  <FrameworkSettingsPanel :settings="settings" />
 </template>
 
 <style scoped>

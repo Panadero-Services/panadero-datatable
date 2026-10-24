@@ -39,17 +39,17 @@ const productConfig = createTableConfig({
 })
 
 const handleCreate = () => {
-  console.log('Create clicked')
+  console.debug('Create clicked')
   alert('Create functionality would be implemented here')
 }
 
 const handleEdit = (item) => {
-  console.log('Edit clicked:', item)
+  console.debug('Edit clicked:', item)
   alert(`Edit item: ${item.name}`)
 }
 
 const handleDelete = (id) => {
-  console.log('Delete clicked:', id)
+  console.debug('Delete clicked:', id)
   if (confirm('Are you sure you want to delete this item?')) {
     alert(`Delete item with ID: ${id}`)
   }

@@ -8,6 +8,8 @@ export function useDataTableData(props, config, state) {
   // Data operations
   const fetchData = async () => {
     console.debug('DataTable: fetchData started')
+    const fetchStartedAt = Date.now()
+    const minimumSpinnerMs = Math.max(0, Number(config?.minimumSpinnerMs ?? 400))
     state.loading.value = true
     state.error.value = null
     
@@ -33,6 +35,11 @@ export function useDataTableData(props, config, state) {
         console.debug('DataTable: Using sample data due to error')
       }
     } finally {
+      const elapsedMs = Date.now() - fetchStartedAt
+      const remainingMs = minimumSpinnerMs - elapsedMs
+      if (remainingMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, remainingMs))
+      }
       state.loading.value = false
       console.debug('DataTable: fetchData completed')
     }

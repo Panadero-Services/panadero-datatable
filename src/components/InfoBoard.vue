@@ -251,7 +251,7 @@ const stats = computed(() => ({
               <!-- Framework Shared Entities -->
               <div>
                 <p :style="scalingStyles.subtitleFontSize" class="text-gray-700 dark:text-gray-200 mb-3 font-bold">
-                  Framework Shared Entities <span :style="scalingStyles?.smallFontSize" class="ml-8 text-gray-500 dark:text-gray-400">3 Entities</span>
+                  Framework Shared Entities <span :style="scalingStyles.smallFontSize" class="ml-8 text-gray-500 dark:text-gray-400">3 Entities</span>
                 </p>
 
                 <div class="space-y-2">
@@ -331,7 +331,7 @@ const stats = computed(() => ({
                     <div :style="scalingStyles.smallFontSize" class="text-gray-500 dark:text-gray-400">0 records</div>
                   </div>
                 </div>
-                <div :style="scalingStyles?.smallFontSize" class="text-gray-400 dark:text-gray-500 text-right">never</div>
+                <div :style="scalingStyles.smallFontSize" class="text-gray-400 dark:text-gray-500 text-right">never</div>
               </div>
             </div>
             <div class="p-4 rounded-lg border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors cursor-pointer">

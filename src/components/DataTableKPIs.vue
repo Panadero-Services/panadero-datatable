@@ -6,7 +6,9 @@
 -->
 <script setup>
 // UI Shared Components 
+import { computed } from 'vue'
 import { KPICard, DistributionCard, ActionCard } from 'panadero-shared-components'
+import { useDataTablePermissions } from '../composables/useDataTablePermissions.js'
 
 // Props
 const props = defineProps({
@@ -22,6 +24,13 @@ const props = defineProps({
 
 // Emits
 const emit = defineEmits(['actionClick'])
+
+const { canCreate } = useDataTablePermissions(props.config)
+
+const quickActions = computed(() => [
+  { key: 'create', label: 'Add New', icon: 'fas fa-plus', variant: 'primary' },
+  { key: 'export', label: 'Export Data', icon: 'fas fa-download', variant: 'secondary' }
+].filter((action) => action.key !== 'create' || canCreate.value))
 
 // Event handlers
 const handleActionClick = (action) => {
@@ -71,10 +80,7 @@ const handleActionClick = (action) => {
       title="Quick Actions"
       icon="fas fa-bolt"
       icon-color="text-yellow-600"
-      :actions="[
-        { key: 'create', label: 'Add New', icon: 'fas fa-plus', variant: 'primary' },
-        { key: 'export', label: 'Export Data', icon: 'fas fa-download', variant: 'secondary' }
-      ]"
+      :actions="quickActions"
       :DESIGN_SYSTEM="DESIGN_SYSTEM"
       :scaling-styles="scalingStyles"
       @action-click="handleActionClick"

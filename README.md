@@ -1,6 +1,6 @@
 # Panadero DataTable Module
 
-**Version:** 1.0.15
+**Version:** 1.1.0
 **Release Date:** 01 November 2025  
 **Status:** Production Ready
 
@@ -58,15 +58,15 @@ const tableConfig = createTableConfig({
 })
 
 const handleCreate = (data) => {
-  console.log('Create:', data)
+  console.debug('Create:', data)
 }
 
 const handleEdit = (item) => {
-  console.log('Edit:', item)
+  console.debug('Edit:', item)
 }
 
 const handleDelete = (id) => {
-  console.log('Delete:', id)
+  console.debug('Delete:', id)
 }
 </script>
 ```
@@ -331,6 +331,39 @@ The component automatically integrates with Laravel's dynamic API routes:
 - `POST /api/{table}` - Create record
 - `PUT /api/{table}/{id}` - Update record
 - `DELETE /api/{table}/{id}` - Delete record
+
+### Custom Headers
+
+Configure custom headers for API requests:
+
+```javascript
+const config = createTableConfig({
+  // Option 1: Custom header function
+  customHeaders: (apiEndpoint) => {
+    if (apiEndpoint.includes('/products')) {
+      return { 'X-From-Products-Page': 'true' }
+    }
+    return {}
+  },
+  
+  // Option 2: Header patterns
+  headerPatterns: [
+    {
+      endpoint: '/erp_products',
+      headers: { 'X-From-Products-Page': 'true' }
+    },
+    {
+      endpoint: '/erp_storages', 
+      headers: { 'X-From-Storages-Page': 'true' }
+    }
+  ],
+  
+  // Option 3: Static headers (always applied)
+  apiHeaders: {
+    'X-Custom-Header': 'value'
+  }
+})
+```
 
 ## Styling Integration
 

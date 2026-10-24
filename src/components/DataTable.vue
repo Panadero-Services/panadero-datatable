@@ -30,6 +30,8 @@ const props = defineProps({
   externalData: { type: Array, default: null }, // External filtered data
   apiEndpoint: { type: String, required: true }, // ADD THIS
   tableName: { type: String, required: true }, // ADD THIS
+  // Optional: classes per cell state, for columns with column.stateKey (the row field that holds the state)
+  cellStateClasses: { type: Object, default: () => ({}) },
   // Optional features
   showKPIs: {
     type: Boolean,
@@ -87,6 +89,16 @@ const {
   // Export
   exportData,
   
+  // Dataset operations
+  createEmptyDataset,
+  saveCurrentTable,
+  saveDataset,
+  addTableToDataset,
+  restoreTable,
+  loadDataset,
+  getDatasetTables,
+  validateDataset,
+  
   // Refresh
   handleRefresh,
   
@@ -106,6 +118,18 @@ const itemsToDelete = ref([])
 const showRefreshModal = ref(false)
 const refreshMessage = ref('')
 const refreshCount = ref(0)
+
+// Dataset state
+const showSaveDatasetModal = ref(false)
+const showRestoreDatasetModal = ref(false)
+const showCreateDatasetModal = ref(false)
+const datasetName = ref('')
+const datasetDescription = ref('')
+const loadedDataset = ref(null)
+const availableTables = ref([])
+const selectedRestoreTable = ref(null)
+const createNewDataset = ref(true)
+const existingDatasetName = ref('')
 
 // Pagination state
 const currentPage = ref(1)
@@ -218,6 +242,134 @@ const handleExport = () => {
   }
 }
 
+// Dataset handlers
+const handleSaveDataset = () => {
+  showCreateDatasetModal.value = true
+  createNewDataset.value = true
+  datasetName.value = ''
+  datasetDescription.value = ''
+}
+
+const handleRestoreDataset = () => {
+  showRestoreDatasetModal.value = true
+  loadedDataset.value = null
+  availableTables.value = []
+  selectedRestoreTable.value = null
+}
+
+const confirmCreateDataset = () => {
+  if (!datasetName.value.trim()) {
+    showNotification('Please enter a dataset name', 'error')
+    return
+  }
+  
+  showCreateDatasetModal.value = false
+  showSaveDatasetModal.value = true
+}
+
+const confirmSaveDataset = () => {
+  if (!datasetName.value.trim()) {
+    showNotification('Please enter a dataset name', 'error')
+    return
+  }
+  
+  // If we have an existing dataset loaded and want to add to it
+  if (!createNewDataset.value && loadedDataset.value) {
+    const result = addTableToDataset(loadedDataset.value)
+    if (result.success) {
+      // Save the updated dataset
+      const saveResult = saveDataset(datasetName.value, datasetDescription.value, result.dataset)
+      if (saveResult.success) {
+        showNotification(saveResult.message, 'success')
+        showSaveDatasetModal.value = false
+        datasetName.value = ''
+        datasetDescription.value = ''
+        loadedDataset.value = null
+      } else {
+        showNotification(saveResult.message, 'error')
+      }
+    } else {
+      showNotification(result.message, 'error')
+    }
+  } else {
+    // Create new dataset
+    const result = saveDataset(datasetName.value, datasetDescription.value)
+    if (result.success) {
+      showNotification(result.message, 'success')
+      showSaveDatasetModal.value = false
+      datasetName.value = ''
+      datasetDescription.value = ''
+    } else {
+      showNotification(result.message, 'error')
+    }
+  }
+}
+
+const handleDatasetFileSelect = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  try {
+    const result = await loadDataset(file)
+    if (result.success) {
+      const validation = validateDataset(result.dataset)
+      if (!validation.valid) {
+        showNotification('Invalid dataset: ' + validation.error, 'error')
+        return
+      }
+      
+      loadedDataset.value = result.dataset
+      availableTables.value = getDatasetTables(result.dataset)
+      selectedRestoreTable.value = availableTables.value[0]?.name || null
+      showNotification('Dataset loaded successfully', 'success')
+    }
+  } catch (error) {
+    showNotification('Failed to load dataset: ' + error.message, 'error')
+  }
+}
+
+const confirmRestoreDataset = () => {
+  if (!loadedDataset.value || !selectedRestoreTable.value) {
+    showNotification('Please load a dataset and select a table', 'error')
+    return
+  }
+  
+  const result = restoreTable(loadedDataset.value, selectedRestoreTable.value)
+  if (result.success) {
+    showNotification(result.message, 'success')
+    showRestoreDatasetModal.value = false
+    loadedDataset.value = null
+    availableTables.value = []
+    selectedRestoreTable.value = null
+  } else {
+    showNotification(result.message, 'error')
+  }
+}
+
+const loadExistingDataset = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+  
+  try {
+    const result = await loadDataset(file)
+    if (result.success) {
+      const validation = validateDataset(result.dataset)
+      if (!validation.valid) {
+        showNotification('Invalid dataset: ' + validation.error, 'error')
+        return
+      }
+      
+      loadedDataset.value = result.dataset
+      datasetName.value = result.dataset.name || ''
+      datasetDescription.value = result.dataset.description || ''
+      createNewDataset.value = false
+      showNotification('Existing dataset loaded. You can add this table to it.', 'success')
+    }
+  } catch (error) {
+    showNotification('Failed to load dataset: ' + error.message, 'error')
+  }
+}
+
 // Pagination handlers
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
@@ -317,6 +469,8 @@ const handleActionClick = (action) => {
       :show-export="showExport"
       @create="handleCreate"
       @export="handleExport"
+      @save-dataset="handleSaveDataset"
+      @restore-dataset="handleRestoreDataset"
     />
 
     <!-- Main Grid Layout -->
@@ -351,6 +505,7 @@ const handleActionClick = (action) => {
             :paginated-data="paginatedData"
             :selected-items="selectedItems"
             :get-nested-value="getNestedValue"
+            :cell-state-classes="cellStateClasses"
             @select-all="selectAll"
             @toggle-selection="toggleSelection"
             @edit="handleEdit"
@@ -408,6 +563,281 @@ const handleActionClick = (action) => {
       @item-save="handleItemSave"
       @form-close="handleFormClose"
     />
+
+    <!-- Create Dataset Modal -->
+    <div v-if="showCreateDatasetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div :class="DESIGN_SYSTEM.card || 'bg-white dark:bg-gray-800'" class="rounded-lg shadow-xl max-w-md w-full mx-4" :style="scalingStyles.cardPadding">
+        <div class="flex items-center justify-between" :style="scalingStyles.marginScale">
+          <h3 :style="scalingStyles.titleFontSize" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="font-semibold">
+            Create Dataset
+          </h3>
+          <button 
+            @click="showCreateDatasetModal = false"
+            :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'"
+            class="hover:opacity-70"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div class="flex items-center" :style="[scalingStyles.gapScale, scalingStyles.marginScale]">
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                :value="true"
+                v-model="createNewDataset"
+                class="mr-2"
+              />
+              <span :style="scalingStyles.textFontSize">Create New Dataset</span>
+            </label>
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                :value="false"
+                v-model="createNewDataset"
+                class="mr-2"
+              />
+              <span :style="scalingStyles.textFontSize">Add to Existing Dataset</span>
+            </label>
+          </div>
+
+          <div v-if="!createNewDataset">
+            <label :style="{...scalingStyles.textFontSize, marginBottom: '8px'}" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="block font-medium">
+              Load Existing Dataset File
+            </label>
+            <input
+              type="file"
+              accept=".json"
+              @change="loadExistingDataset"
+              :style="[scalingStyles.inputPadding, scalingStyles.textFontSize]"
+              :class="[DESIGN_SYSTEM.input || 'bg-white border-gray-300 dark:bg-gray-700 dark:border-gray-600', 'w-full rounded']"
+            />
+            <p :style="{...scalingStyles.smallFontSize, marginTop: '8px'}" :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'">
+              Select an existing dataset file to add this table to it
+            </p>
+          </div>
+
+          <div>
+            <label :style="{...scalingStyles.textFontSize, marginBottom: '8px'}" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="block font-medium">
+              Dataset Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="datasetName"
+              type="text"
+              :style="[scalingStyles.inputPadding, scalingStyles.textFontSize]"
+              :class="[DESIGN_SYSTEM.input || 'bg-white border-gray-300 dark:bg-gray-700 dark:border-gray-600', 'w-full rounded']"
+              placeholder="e.g., demo, initial-set, production-data"
+              :disabled="!createNewDataset && !loadedDataset"
+            />
+            <p :style="{...scalingStyles.smallFontSize, marginTop: '4px'}" :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'">
+              {{ createNewDataset ? 'Enter a name for the new dataset' : 'Dataset name from loaded file' }}
+            </p>
+          </div>
+          
+          <div>
+            <label :style="{...scalingStyles.textFontSize, marginBottom: '8px'}" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="block font-medium">
+              Description (optional)
+            </label>
+            <textarea
+              v-model="datasetDescription"
+              :style="[scalingStyles.inputPadding, scalingStyles.textFontSize]"
+              :class="[DESIGN_SYSTEM.input || 'bg-white border-gray-300 dark:bg-gray-700 dark:border-gray-600', 'w-full rounded']"
+              rows="3"
+              placeholder="Enter description"
+              :disabled="!createNewDataset && !loadedDataset"
+            ></textarea>
+          </div>
+          
+          <div v-if="loadedDataset && !createNewDataset" :style="[scalingStyles.smallFontSize, scalingStyles.paddingScale]" :class="DESIGN_SYSTEM.text?.info || 'text-blue-600 dark:text-blue-400'" class="bg-blue-50 dark:bg-blue-900/20 rounded">
+            Loaded: {{ loadedDataset.name }}<br>
+            Tables in dataset: {{ Object.keys(loadedDataset.tables || {}).length }}
+          </div>
+          
+          <div :style="scalingStyles.smallFontSize" :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'">
+            This will save the current table ({{ tableName }}) with all data, filters, and pagination state.
+          </div>
+        </div>
+        
+        <div class="flex justify-end" :style="[scalingStyles.buttonGap, {marginTop: scalingStyles.sectionMargin.marginBottom}]">
+          <button
+            @click="showCreateDatasetModal = false"
+            :style="scalingStyles.buttonPadding"
+            :class="[DESIGN_SYSTEM.button?.secondary || 'bg-gray-200 hover:bg-gray-300', 'rounded-md text-gray-900 dark:text-white']"
+          >
+            Cancel
+          </button>
+          <button
+            @click="confirmCreateDataset"
+            :disabled="!datasetName.trim() || (!createNewDataset && !loadedDataset)"
+            :style="scalingStyles.buttonPadding"
+            :class="[DESIGN_SYSTEM.button?.primary || 'bg-blue-600 hover:bg-blue-700 text-white', 'rounded-md disabled:opacity-50 disabled:cursor-not-allowed']"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save Dataset Modal -->
+    <div v-if="showSaveDatasetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div :class="DESIGN_SYSTEM.card || 'bg-white dark:bg-gray-800'" class="rounded-lg shadow-xl max-w-md w-full mx-4" :style="scalingStyles.cardPadding">
+        <div class="flex items-center justify-between" :style="scalingStyles.marginScale">
+          <h3 :style="scalingStyles.titleFontSize" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="font-semibold">
+            Save Dataset
+          </h3>
+          <button 
+            @click="showSaveDatasetModal = false"
+            :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'"
+            class="hover:opacity-70"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div v-if="!createNewDataset && loadedDataset" :style="[scalingStyles.textFontSize, scalingStyles.paddingScale]" :class="DESIGN_SYSTEM.text?.info || 'text-blue-600 dark:text-blue-400'" class="bg-blue-50 dark:bg-blue-900/20 rounded">
+            <strong>Adding to existing dataset:</strong> {{ loadedDataset.name }}<br>
+            Current tables: {{ Object.keys(loadedDataset.tables || {}).length }}
+          </div>
+
+          <div>
+            <label :style="{...scalingStyles.textFontSize, marginBottom: '8px'}" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="block font-medium">
+              Dataset Name <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="datasetName"
+              type="text"
+              :style="[scalingStyles.inputPadding, scalingStyles.textFontSize]"
+              :class="[DESIGN_SYSTEM.input || 'bg-white border-gray-300 dark:bg-gray-700 dark:border-gray-600', 'w-full rounded']"
+              placeholder="e.g., demo, initial-set"
+            />
+          </div>
+          
+          <div>
+            <label :style="{...scalingStyles.textFontSize, marginBottom: '8px'}" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="block font-medium">
+              Description (optional)
+            </label>
+            <textarea
+              v-model="datasetDescription"
+              :style="[scalingStyles.inputPadding, scalingStyles.textFontSize]"
+              :class="[DESIGN_SYSTEM.input || 'bg-white border-gray-300 dark:bg-gray-700 dark:border-gray-600', 'w-full rounded']"
+              rows="3"
+              placeholder="Enter description"
+            ></textarea>
+          </div>
+          
+          <div :style="scalingStyles.smallFontSize" :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'">
+            This will save the current table ({{ tableName }}) along with all data, filters, and pagination state.
+          </div>
+        </div>
+        
+        <div class="flex justify-end" :style="[scalingStyles.buttonGap, {marginTop: scalingStyles.sectionMargin.marginBottom}]">
+          <button
+            @click="showSaveDatasetModal = false"
+            :style="scalingStyles.buttonPadding"
+            :class="[DESIGN_SYSTEM.button?.secondary || 'bg-gray-200 hover:bg-gray-300', 'rounded-md text-gray-900 dark:text-white']"
+          >
+            Cancel
+          </button>
+          <button
+            @click="confirmSaveDataset"
+            :disabled="!datasetName.trim()"
+            :style="scalingStyles.buttonPadding"
+            :class="[DESIGN_SYSTEM.button?.primary || 'bg-blue-600 hover:bg-blue-700 text-white', 'rounded-md disabled:opacity-50 disabled:cursor-not-allowed']"
+          >
+            Save Dataset
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restore Dataset Modal -->
+    <div v-if="showRestoreDatasetModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div :class="DESIGN_SYSTEM.card || 'bg-white dark:bg-gray-800'" class="rounded-lg shadow-xl max-w-md w-full mx-4" :style="scalingStyles.cardPadding">
+        <div class="flex items-center justify-between" :style="scalingStyles.marginScale">
+          <h3 :style="scalingStyles.titleFontSize" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="font-semibold">
+            Restore Dataset
+          </h3>
+          <button 
+            @click="showRestoreDatasetModal = false"
+            :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'"
+            class="hover:opacity-70"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label :style="{...scalingStyles.textFontSize, marginBottom: '8px'}" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="block font-medium">
+              Load Dataset File
+            </label>
+            <input
+              type="file"
+              accept=".json"
+              @change="handleDatasetFileSelect"
+              :style="[scalingStyles.inputPadding, scalingStyles.textFontSize]"
+              :class="[DESIGN_SYSTEM.input || 'bg-white border-gray-300 dark:bg-gray-700 dark:border-gray-600', 'w-full rounded']"
+            />
+            <p :style="{...scalingStyles.smallFontSize, marginTop: '8px'}" :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'">
+              Select a .json dataset file
+            </p>
+          </div>
+          
+          <div v-if="loadedDataset" class="space-y-3 bg-gray-50 dark:bg-gray-700/50 rounded" :style="scalingStyles.cardPadding">
+            <div :style="scalingStyles.textFontSize" class="font-medium" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'">
+              Dataset: {{ loadedDataset.name }}
+            </div>
+            <div v-if="loadedDataset.description" :style="scalingStyles.smallFontSize" :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'">
+              {{ loadedDataset.description }}
+            </div>
+            <div :style="scalingStyles.smallFontSize" :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'">
+              Created: {{ new Date(loadedDataset.created).toLocaleDateString() }}
+            </div>
+            <div v-if="loadedDataset.updated" :style="scalingStyles.smallFontSize" :class="DESIGN_SYSTEM.text?.secondary || 'text-gray-600 dark:text-gray-400'">
+              Updated: {{ new Date(loadedDataset.updated).toLocaleDateString() }}
+            </div>
+            
+            <div :style="{marginTop: scalingStyles.marginScale.marginBottom}">
+              <label :style="{...scalingStyles.textFontSize, marginBottom: '8px'}" :class="DESIGN_SYSTEM.text?.primary || 'text-gray-900 dark:text-white'" class="block font-medium">
+                Select Table to Restore
+              </label>
+              <select
+                v-model="selectedRestoreTable"
+                :style="[scalingStyles.inputPadding, scalingStyles.textFontSize]"
+                :class="[DESIGN_SYSTEM.input || 'bg-white border-gray-300 dark:bg-gray-700 dark:border-gray-600', 'w-full rounded']"
+              >
+                <option v-for="table in availableTables" :key="table.name" :value="table.name">
+                  {{ table.name }} ({{ table.rowCount }} rows)
+                </option>
+              </select>
+              <p v-if="availableTables.length === 0" :style="{...scalingStyles.smallFontSize, marginTop: '8px'}" :class="DESIGN_SYSTEM.text?.warning || 'text-yellow-600 dark:text-yellow-400'">
+                No tables found in this dataset
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex justify-end" :style="[scalingStyles.buttonGap, {marginTop: scalingStyles.sectionMargin.marginBottom}]">
+          <button
+            @click="showRestoreDatasetModal = false"
+            :style="scalingStyles.buttonPadding"
+            :class="[DESIGN_SYSTEM.button?.secondary || 'bg-gray-200 hover:bg-gray-300', 'rounded-md text-gray-900 dark:text-white']"
+          >
+            Cancel
+          </button>
+          <button
+            v-if="loadedDataset && selectedRestoreTable"
+            @click="confirmRestoreDataset"
+            :style="scalingStyles.buttonPadding"
+            :class="[DESIGN_SYSTEM.button?.primary || 'bg-blue-600 hover:bg-blue-700 text-white', 'rounded-md']"
+          >
+            Restore Table
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

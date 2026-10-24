@@ -1,9 +1,9 @@
 // Test import of panadero-datatable components
 import { DataTable, createTableConfig, getTableConfig } from './index.js'
 
-console.log('✅ DataTable import successful:', typeof DataTable)
-console.log('✅ createTableConfig import successful:', typeof createTableConfig)
-console.log('✅ getTableConfig import successful:', typeof getTableConfig)
+console.debug('✅ DataTable import successful:', typeof DataTable)
+console.debug('✅ createTableConfig import successful:', typeof createTableConfig)
+console.debug('✅ getTableConfig import successful:', typeof getTableConfig)
 
 // Test creating a configuration
 const testConfig = createTableConfig({
@@ -15,14 +15,14 @@ const testConfig = createTableConfig({
   ]
 })
 
-console.log('✅ Configuration created successfully:', testConfig)
+console.debug('✅ Configuration created successfully:', testConfig)
 
 // Test preset configuration
 try {
   const presetConfig = getTableConfig('erpProducts')
-  console.log('✅ Preset configuration loaded successfully:', presetConfig.title)
+  console.debug('✅ Preset configuration loaded successfully:', presetConfig.title)
 } catch (error) {
-  console.log('❌ Preset configuration failed:', error.message)
+  console.debug('❌ Preset configuration failed:', error.message)
 }
 
-console.log('🎉 All imports and basic functionality working!')
+console.debug('🎉 All imports and basic functionality working!')

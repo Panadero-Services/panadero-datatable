@@ -10,6 +10,7 @@ import { useDataTableAnalytics } from './useDataTableAnalytics.js'
 import { useDataTablePagination } from './useDataTablePagination.js'
 import { useDataTableData } from './useDataTableData.js'
 import { useDataTableExport } from './useDataTableExport.js'
+import { useDataTableDataset } from './useDataTableDataset.js'
 
 export function useDataTable(props, config) {
   // Get state from state composable
@@ -129,6 +130,18 @@ export function useDataTable(props, config) {
   // Get export functionality
   const { exportData } = useDataTableExport(props, config, state, getNestedValue)
 
+  // Get dataset functionality
+  const { 
+    createEmptyDataset, 
+    saveCurrentTable, 
+    saveDataset, 
+    addTableToDataset, 
+    restoreTable, 
+    loadDataset, 
+    getDatasetTables, 
+    validateDataset 
+  } = useDataTableDataset(props, config, state, filterStates, baseSearchQuery)
+
   // Refresh functionality
   const handleRefresh = async () => {
     const beforeCount = filteredData.value.length
@@ -209,6 +222,16 @@ export function useDataTable(props, config) {
 
     // Export
     exportData,
+    
+    // Dataset operations
+    createEmptyDataset,
+    saveCurrentTable,
+    saveDataset,
+    addTableToDataset,
+    restoreTable,
+    loadDataset,
+    getDatasetTables,
+    validateDataset,
     
     // Refresh
     handleRefresh,

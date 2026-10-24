@@ -1,6 +1,6 @@
 <script setup>
 import { useDataTableStore } from '../../composables/dataTableStore';
-import { onMounted, inject, computed } from 'vue';
+import { inject } from 'vue';
 
 const props = defineProps({
   activeTab: { type: String, required: true },
@@ -9,23 +9,14 @@ const props = defineProps({
 
 const emit = defineEmits(['tab-change']);
 
-const store = useDataTableStore(); // Only for business data
+const store = useDataTableStore();
 
-// INJECT scalingStyles from parent (provided by DataTableWrapper)
-// NO default value - if it's not provided, Vue will warn us
 const scalingStyles = inject('scalingStyles');
 const designSystem = inject('designSystem');
-
 
 const handleTabClick = (tabId) => {
   emit('tab-change', tabId);
 };
-
-// Debug: Log the tabs being received
-onMounted(() => {
-  console.debug('DataTableNavigation received tabs:', props.tabs);
-  console.debug('Tabs structure:', props.tabs.map(tab => ({ id: tab.id, label: tab.label, icon: tab.icon })));
-});
 </script>
 
 <template>
@@ -39,10 +30,9 @@ onMounted(() => {
         @click="handleTabClick(tab.id)"
         :style="scalingStyles.buttonPadding"
         :class="[
-          'flex items-center gap-1 rounded-lg font-medium transition-all duration-200 ease-in-out transform hover:scale-105',
-          activeTab === tab.id 
-            ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/25' 
-            : 'text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-gray-800/80 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:shadow-md border border-gray-200/50 dark:border-gray-700'
+          'flex items-center gap-1 font-medium transition-all duration-200 ease-in-out transform hover:scale-105 flex-shrink-0',
+          designSystem?.rounded ?? 'rounded-lg',
+          activeTab === tab.id ? (designSystem?.button?.activeTab ?? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md') : (designSystem?.button?.inActiveTab ?? 'text-gray-700 dark:text-gray-300 bg-white/80 dark:bg-gray-800/80 hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-gray-200/50 dark:border-gray-700')
         ]"
       >
         <!-- Icon with dynamic color and enhanced styling -->
