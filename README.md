@@ -1,6 +1,6 @@
 # Panadero DataTable Module
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Release Date:** 01 November 2025  
 **Status:** Production Ready
 
